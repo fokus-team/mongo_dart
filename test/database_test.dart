@@ -370,8 +370,9 @@ db.runCommand(
   expect(p1["\u0024group"], isNotNull);
   expect(p1["\$group"], isNotNull);
 
-  var v = await collection.aggregate(pipeline);
-  final result = v['result'] as List;
+  var v = await collection.aggregate(pipeline, cursor: {});
+  Map cursor = v['cursor'] as Map;
+  List result = cursor['firstBatch'] as List;
   expect(result[0]["_id"], "Age of Steam");
   expect(result[0]["avgRating"], 3);
 }
@@ -463,6 +464,7 @@ db.runCommand(
   expect(cursor['id'], const TypeMatcher<int>());
   expect(cursor['firstBatch'], allOf(const TypeMatcher<List>(), hasLength(3)));
   final firstBatch = cursor['firstBatch'] as List;
+
   expect(firstBatch[0]["_id"], "Age of Steam");
   expect(firstBatch[0]["avgRating"], 3);
 }
