@@ -43,7 +43,7 @@ abstract class SaslAuthenticator extends Authenticator {
         break;
       }
 
-      var payload = result['payload'];
+      var payload = result['payload'] as BsonBinary;
 
       var payloadAsBytes = payload.byteList;
 
