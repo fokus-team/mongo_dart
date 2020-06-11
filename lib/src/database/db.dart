@@ -182,7 +182,7 @@ class Db {
         connection = _masterConnectionVerified;
       }
 
-      return connection.query(queryMessage);
+      return connection.query(_getMessageToSend(queryMessage));
     });
   }
 
@@ -200,7 +200,7 @@ class Db {
       writeConcern = _writeConcern;
     }
 
-    connection.execute(message, writeConcern == WriteConcern.ERRORS_IGNORED);
+    connection.execute(_getMessageToSend(message), writeConcern == WriteConcern.ERRORS_IGNORED);
   }
 
   Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED}) {
@@ -229,7 +229,7 @@ class Db {
 
     Completer<Map<String, dynamic>> result = Completer();
 
-    var replyMessage = await connection.query(message);
+    var replyMessage = await connection.query(_getMessageToSend(message));
     var firstRepliedDocument = replyMessage.documents[0];
     var errorMessage = "";
 
@@ -328,6 +328,13 @@ class Db {
     }
 
     return result;
+  }
+
+  MongoMessage _getMessageToSend(MongoMessage message) {
+  	// OP_MSG can be used only after completed handshake
+	  if (_masterConnection.serverCapabilities.opMsg && state != State.INIT && state != State.OPENING)
+		  message = MongoOpMessage.fromMessage(message);
+	  return message;
   }
 
   Stream<Map<String, dynamic>> _listCollectionsCursor(

@@ -10,7 +10,6 @@ class MongoQueryMessage extends MongoMessage {
   static final OPTS_EXHAUST = 64;
   static final OPTS_PARTIAL = 128;
 
-  BsonCString _collectionFullName;
   int flags;
   int numberToSkip;
   int numberToReturn;

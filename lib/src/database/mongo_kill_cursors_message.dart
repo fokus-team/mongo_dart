@@ -3,8 +3,9 @@ part of mongo_dart;
 class MongoKillCursorsMessage extends MongoMessage {
   int cursorId;
 
-  MongoKillCursorsMessage(this.cursorId) {
+  MongoKillCursorsMessage(String collectionFullName, this.cursorId) {
     opcode = MongoMessage.KillCursors;
+    _collectionFullName = BsonCString(collectionFullName);
   }
 
   int get messageLength {

@@ -41,6 +41,8 @@ part 'src/database/dbcommand.dart';
 
 part 'src/database/error.dart';
 
+part 'src/database/mongo_op_message.dart';
+
 part 'src/database/mongo_getmore_message.dart';
 
 part 'src/database/mongo_insert_message.dart';

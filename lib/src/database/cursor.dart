@@ -155,7 +155,7 @@ class Cursor {
     ////_log.finer("Closing cursor, cursorId = $cursorId");
     state = State.CLOSED;
     if (cursorId != 0) {
-      MongoKillCursorsMessage msg = MongoKillCursorsMessage(cursorId);
+      MongoKillCursorsMessage msg = MongoKillCursorsMessage(collection.fullName(), cursorId);
       cursorId = 0;
       db.executeMessage(msg, WriteConcern.UNACKNOWLEDGED);
     }

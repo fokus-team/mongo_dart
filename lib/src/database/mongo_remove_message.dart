@@ -1,7 +1,6 @@
 part of mongo_dart;
 
 class MongoRemoveMessage extends MongoMessage {
-  BsonCString _collectionFullName;
   int flags;
   BsonMap _selector;
 

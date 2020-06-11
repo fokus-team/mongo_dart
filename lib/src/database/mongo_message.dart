@@ -20,6 +20,7 @@ class MongoMessage {
   static final GetMore = 2005;
   static final Delete = 2006;
   static final KillCursors = 2007;
+  static final OpMsg = 2013;
   int _requestId;
   int _messageLength;
   int get messageLength => _messageLength;
@@ -33,6 +34,7 @@ class MongoMessage {
 
   int responseTo;
   int opcode = MongoMessage.Reply;
+  BsonCString _collectionFullName;
 
   BsonBinary serialize() {
     throw MongoDartError('Must be implemented');
