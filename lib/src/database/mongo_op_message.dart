@@ -18,6 +18,14 @@ class MongoOpMessage extends MongoMessage {
 		} else if (message is MongoQueryMessage) {
 			document.data['find'] = namespace[1];
 			document.data['filter'] = message._query.data['\$query'];
+			if (message.numberToReturn > 0)
+				document.data['limit'] = message.numberToReturn;
+			document.data['skip'] = message.numberToSkip;
+			if (message._fields != null)
+				document.data['projection'] = message._fields;
+		} else if (message is MongoGetMoreMessage) {
+			document.data['getMore'] = message.cursorId;
+			document.data['collection'] = namespace[1];
 		}
 		document.data['\$db'] = namespace[0];
 		documents.add(document);
@@ -30,16 +38,16 @@ class MongoOpMessage extends MongoMessage {
 
 	MongoReplyMessage unpack() {
 		var answer = MongoReplyMessage();
-		var cursor = documents[0].data['cursor'];
 		answer.responseTo = responseTo;
 		answer._requestId = _requestId;
-		answer.cursorId = cursor['id'] as int;
-		answer.documents = [];
-		for (var document in cursor['firstBatch'])
-			answer.documents.add(document as Map<String, dynamic>);
 		answer.responseFlags = 0;
-		answer.startingFrom = 0;
-		answer.numberReturned = answer.documents.length;
+		answer.documents = [];
+		if (documents[0].data.containsKey('cursor') == null)
+			return answer;
+		var cursor = documents[0].data['cursor'] as Map<String, dynamic>;
+		answer.cursorId = cursor['id'] as int;
+		var batchParam = cursor.containsKey('firstBatch') ? 'firstBatch' : 'nextBatch';
+		answer.documents.addAll(List.from(cursor[batchParam] as List));
 		return answer;
 	}
 
