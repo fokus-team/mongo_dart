@@ -1,6 +1,6 @@
 part of mongo_dart;
 
-class MongoRemoveMessage extends MongoMessage {
+class MongoRemoveMessage extends MongoMessage with BulkCommand {
   int flags;
   BsonMap _selector;
 
@@ -12,14 +12,7 @@ class MongoRemoveMessage extends MongoMessage {
   }
 
   @override
-  Map<String, dynamic> toCommand() {
-	  return {
-		  'delete': _collectionName(),
-		  'deletes': [
-			  {'q': _selector, 'limit': 0}
-		  ]
-	  };
-  }
+  Map<String, dynamic> toCommand() => asSingleSectionPayload();
 
   int get messageLength {
     return 16 +
@@ -42,5 +35,17 @@ class MongoRemoveMessage extends MongoMessage {
 
   String toString() {
     return "MongoRemoveMessage($requestId, ${_collectionFullName.value}, ${_selector.value})";
+  }
+
+  @override
+  List<Section> getSections() {
+	  return [
+		  MainSection(BsonMap({
+			  'delete': _collectionName()
+		  })),
+		  PayloadSection('deletes', [
+			  BsonMap({'q': _selector, 'limit': 0})
+		  ])
+	  ];
   }
 }

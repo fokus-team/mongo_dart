@@ -6,15 +6,19 @@ class MongoOpMessage extends MongoMessage {
 	static final OPTS_EXHAUST_ALLOWED = 1 << 16;
 
 	int flags = 0;
-	int payloadType = 0;
 	List<BsonMap> documents = [];
+	List<Section> sections = [];
 
 	MongoOpMessage.fromMessage(MongoMessage message) {
 		opcode = MongoMessage.OpMsg;
-		var command = message.toCommand();
-		command['\$db'] = message._dbName();
-		command.addAll(toCommand());
-		documents.add(BsonMap(command));
+		if (message is BulkCommand) {
+			sections = (message as BulkCommand).getSections();
+		} else {
+			BsonMap command = BsonMap(message.toCommand());
+			command.data.addAll(toCommand());
+		  sections.insert(0, MainSection(command));
+		}
+		(sections[0] as MainSection).payload.data['\$db'] = message._dbName();
 	}
 
 	MongoOpMessage.fromResponse(BsonBinary buffer) {
@@ -23,9 +27,7 @@ class MongoOpMessage extends MongoMessage {
 	}
 
 	@override
-	Map<String, dynamic> toCommand() {
-		return {};
-	}
+	Map<String, dynamic> toCommand() => {};
 
 	MongoReplyMessage unpack() {
 		var answer = MongoReplyMessage();
@@ -44,19 +46,15 @@ class MongoOpMessage extends MongoMessage {
 	}
 
 	@override
-	int get messageLength {
-		return 16 + 4 + 1 + documents[0].byteLength();
-	}
+	int get messageLength => 16 + 4 + sections.fold<int>(0, (value, element) => value += element.byteLength);
 
 	@override
 	BsonBinary serialize() {
 		BsonBinary buffer = BsonBinary(messageLength);
 		writeMessageHeaderTo(buffer);
 		buffer.writeInt(flags);
-		buffer.writeByte(0);
-		documents[0].packValue(buffer);
-		if (payloadType == 1)
-			throw MongoDartError('OpMsg payload type 1 is not yet supported');
+		sections.forEach((element) => element.serialize(buffer));
+
 		buffer.offset = 0;
 		return buffer;
 	}
@@ -65,9 +63,13 @@ class MongoOpMessage extends MongoMessage {
 	void deserialize(BsonBinary buffer) {
 		readMessageHeaderFrom(buffer);
 		flags = buffer.readInt32();
-		payloadType = buffer.readByte();
+		int payloadType = buffer.readByte();
 		documents.add(BsonMap({}));
 		documents[0].unpackValue(buffer);
+		while (buffer.byteLength() - buffer.offset > 4) {
+			buffer.offset++;
+
+		}
 		if (payloadType == 1)
 			throw MongoDartError('OpMsg payload type 1 is not yet supported');
 	}
