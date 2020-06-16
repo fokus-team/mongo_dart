@@ -8,6 +8,14 @@ class MongoKillCursorsMessage extends MongoMessage {
     _collectionFullName = BsonCString(collectionFullName);
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+	  return {
+		  'killCursors': _collectionName(),
+		  'cursors': [cursorId]
+	  };
+  }
+
   int get messageLength {
     return 16 + 4 + 4 + 8;
   }

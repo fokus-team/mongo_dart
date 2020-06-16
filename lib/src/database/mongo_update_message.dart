@@ -18,6 +18,16 @@ class MongoUpdateMessage extends MongoMessage {
     opcode = MongoMessage.Update;
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+	  return {
+		  'update': _collectionName(),
+		  'updates': [
+			  {'q': _selector, 'u': _document}
+		  ]
+	  };
+  }
+
   int get messageLength {
     return 16 +
         4 +

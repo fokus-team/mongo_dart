@@ -11,46 +11,20 @@ class MongoOpMessage extends MongoMessage {
 
 	MongoOpMessage.fromMessage(MongoMessage message) {
 		opcode = MongoMessage.OpMsg;
-		var namespace = message._collectionFullName.data.split('.');
-		BsonMap document = BsonMap({});
-		if (message is DbCommand) {
-			document.data.addAll(message._query.data);
-		} else if (message is MongoQueryMessage) {
-			document.data['find'] = namespace[1];
-			document.data['filter'] = message._query.data['\$query'];
-			if (message.numberToReturn > 0)
-				document.data['limit'] = message.numberToReturn;
-			document.data['skip'] = message.numberToSkip;
-			if (message._fields != null)
-				document.data['projection'] = message._fields;
-		} else if (message is MongoGetMoreMessage) {
-			document.data['getMore'] = message.cursorId;
-			document.data['collection'] = namespace[1];
-		} else if (message is MongoInsertMessage) {
-			document.data['insert'] = namespace[1];
-			document.data['documents'] = message._documents;
-		} else if (message is MongoKillCursorsMessage) {
-			document.data['killCursors'] = namespace[1];
-			document.data['cursors'] = [message.cursorId];
-		} else if (message is MongoRemoveMessage) {
-			document.data['delete'] = namespace[1];
-			document.data['deletes'] = [
-				{'q': message._selector, 'limit': 0}
-			];
-		} else if (message is MongoUpdateMessage) {
-			document.data['update'] = namespace[1];
-			document.data['updates'] = [
-				{'q': message._selector, 'u': message._document}
-			];
-		} else
-			throw MongoDartError('Trying to package unsupported message type ${message.runtimeType} as OP_MSG');
-		document.data['\$db'] = namespace[0];
-		documents.add(document);
+		var command = message.toCommand();
+		command['\$db'] = message._dbName();
+		command.addAll(toCommand());
+		documents.add(BsonMap(command));
 	}
 
 	MongoOpMessage.fromResponse(BsonBinary buffer) {
 		opcode = MongoMessage.OpMsg;
 		deserialize(buffer);
+	}
+
+	@override
+	Map<String, dynamic> toCommand() {
+		return {};
 	}
 
 	MongoReplyMessage unpack() {

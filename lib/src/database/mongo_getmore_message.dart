@@ -10,6 +10,14 @@ class MongoGetMoreMessage extends MongoMessage {
     opcode = MongoMessage.GetMore;
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+		return {
+			'getMore': cursorId,
+			'collection': _collectionName()
+		};
+  }
+
   int get messageLength {
     return 16 + 4 + _collectionFullName.byteLength() + 4 + 8;
   }

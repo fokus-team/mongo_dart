@@ -11,6 +11,16 @@ class MongoRemoveMessage extends MongoMessage {
     opcode = MongoMessage.Delete;
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+	  return {
+		  'delete': _collectionName(),
+		  'deletes': [
+			  {'q': _selector, 'limit': 0}
+		  ]
+	  };
+  }
+
   int get messageLength {
     return 16 +
         4 +

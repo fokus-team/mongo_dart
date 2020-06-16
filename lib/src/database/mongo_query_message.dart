@@ -32,6 +32,20 @@ class MongoQueryMessage extends MongoMessage {
     opcode = MongoMessage.Query;
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+	  var command = {
+		  'find': _collectionName(),
+		  'filter': _query.data['\$query'],
+		  'skip': numberToSkip
+	  };
+	  if (numberToReturn > 0)
+		  command['limit'] = numberToReturn;
+	  if (_fields != null)
+		  command['projection'] = _fields;
+	  return command;
+  }
+
   int get messageLength {
     int result =
         16 + 4 + _collectionFullName.byteLength() + 4 + 4 + _query.byteLength();

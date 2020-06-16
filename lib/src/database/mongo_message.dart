@@ -65,6 +65,13 @@ class MongoMessage {
     }
   }
 
+  Map<String, dynamic> toCommand() {
+		throw MongoDartError('${this.runtimeType} does not support converting to OP_MSG compatible command');
+	}
+
+  String _dbName() => _collectionFullName.data.split('.')[0];
+  String _collectionName() => _collectionFullName.data.split('.')[1];
+
   String toString() {
     throw MongoDartError('must be implemented');
   }

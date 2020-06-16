@@ -22,6 +22,11 @@ class DbCommand extends MongoQueryMessage {
     _collectionFullName = BsonCString("${db.databaseName}.$collectionName");
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+	  return _query.data;
+  }
+
   static DbCommand createFindAndModifyCommand(Db db, String collectionName,
       {Map<String, dynamic> query,
       Map<String, dynamic> sort,

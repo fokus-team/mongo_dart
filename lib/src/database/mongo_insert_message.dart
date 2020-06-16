@@ -14,6 +14,14 @@ class MongoInsertMessage extends MongoMessage {
     opcode = MongoMessage.Insert;
   }
 
+  @override
+  Map<String, dynamic> toCommand() {
+		return {
+			'insert': _collectionName(),
+		  'documents': _documents
+		};
+  }
+
   int get messageLength {
     int docsSize = 0;
     for (var _doc in _documents) {
