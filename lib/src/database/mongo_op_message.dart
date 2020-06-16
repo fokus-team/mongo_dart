@@ -29,7 +29,21 @@ class MongoOpMessage extends MongoMessage {
 		} else if (message is MongoInsertMessage) {
 			document.data['insert'] = namespace[1];
 			document.data['documents'] = message._documents;
-		}
+		} else if (message is MongoKillCursorsMessage) {
+			document.data['killCursors'] = namespace[1];
+			document.data['cursors'] = [message.cursorId];
+		} else if (message is MongoRemoveMessage) {
+			document.data['delete'] = namespace[1];
+			document.data['deletes'] = [
+				{'q': message._selector, 'limit': 0}
+			];
+		} else if (message is MongoUpdateMessage) {
+			document.data['update'] = namespace[1];
+			document.data['updates'] = [
+				{'q': message._selector, 'u': message._document}
+			];
+		} else
+			throw MongoDartError('Trying to package unsupported message type ${message.runtimeType} as OP_MSG');
 		document.data['\$db'] = namespace[0];
 		documents.add(document);
 	}

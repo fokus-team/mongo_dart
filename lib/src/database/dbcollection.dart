@@ -73,8 +73,10 @@ class DbCollection {
 
   Future<Map<String, dynamic>> findOne([selector]) {
     Cursor cursor = Cursor(db, this, selector);
-    Future<Map<String, dynamic>> result = cursor.nextObject();
-    cursor.close();
+    Future<Map<String, dynamic>> result = cursor.nextObject().then((result) {
+	    cursor.close();
+	    return result;
+    });
     return result;
   }
 
