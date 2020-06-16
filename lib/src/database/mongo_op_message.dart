@@ -1,9 +1,9 @@
 part of mongo_dart;
 
 class MongoOpMessage extends MongoMessage {
-	static final CHECKSUM_PRESENT = 0;
-	static final MORE_TO_COME = 1;
-	static final EXHAUST_ALLOWED = 16;
+	static final OPTS_CHECKSUM_PRESENT = 1 << 0;
+	static final OPTS_MORE_TO_COME = 1 << 1;
+	static final OPTS_EXHAUST_ALLOWED = 1 << 16;
 
 	int flags = 0;
 	int payloadType = 0;

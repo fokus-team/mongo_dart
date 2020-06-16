@@ -2,13 +2,13 @@ part of mongo_dart;
 
 class MongoQueryMessage extends MongoMessage {
   static final OPTS_NONE = 0;
-  static final OPTS_TAILABLE_CURSOR = 2;
-  static final OPTS_SLAVE = 4;
-  static final OPTS_OPLOG_REPLY = 8;
-  static final OPTS_NO_CURSOR_TIMEOUT = 16;
-  static final OPTS_AWAIT_DATA = 32;
-  static final OPTS_EXHAUST = 64;
-  static final OPTS_PARTIAL = 128;
+  static final OPTS_TAILABLE_CURSOR = 1 << 1;
+  static final OPTS_SLAVE = 1 << 2;
+  static final OPTS_OPLOG_REPLY = 1 << 3;
+  static final OPTS_NO_CURSOR_TIMEOUT = 1 << 4;
+  static final OPTS_AWAIT_DATA = 1 << 5;
+  static final OPTS_EXHAUST = 1 << 6;
+  static final OPTS_PARTIAL = 1 << 7;
 
   int flags;
   int numberToSkip;
