@@ -11,11 +11,11 @@ class MongoGetMoreMessage extends MongoMessage {
   }
 
   @override
-  Map<String, dynamic> toCommand() {
-		return {
+  List<Section> toCommand() {
+		return _asSimpleCommand({
 			'getMore': cursorId,
 			'collection': _collectionName()
-		};
+		});
   }
 
   int get messageLength {

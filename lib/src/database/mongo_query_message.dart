@@ -33,7 +33,7 @@ class MongoQueryMessage extends MongoMessage {
   }
 
   @override
-  Map<String, dynamic> toCommand() {
+  List<Section> toCommand() {
 	  var command = {
 		  'find': _collectionName(),
 		  'filter': _query.data['\$query'],
@@ -43,7 +43,7 @@ class MongoQueryMessage extends MongoMessage {
 		  command['limit'] = numberToReturn;
 	  if (_fields != null)
 		  command['projection'] = _fields;
-	  return command;
+	  return _asSimpleCommand(command);
   }
 
   int get messageLength {

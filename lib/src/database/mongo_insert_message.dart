@@ -1,6 +1,6 @@
 part of mongo_dart;
 
-class MongoInsertMessage extends MongoMessage with BulkCommand {
+class MongoInsertMessage extends MongoMessage {
   int flags;
   List<BsonMap> _documents;
   MongoInsertMessage(
@@ -15,7 +15,14 @@ class MongoInsertMessage extends MongoMessage with BulkCommand {
   }
 
   @override
-  Map<String, dynamic> toCommand() => asSingleSectionPayload();
+  List<Section> toCommand() {
+	  return [
+		  MainSection(BsonMap({
+			  'insert': _collectionName()
+		  })),
+		  PayloadSection('documents', _documents)
+	  ];
+  }
 
   int get messageLength {
     int docsSize = 0;
@@ -43,15 +50,5 @@ class MongoInsertMessage extends MongoMessage with BulkCommand {
       return "MongoInsertMessage($requestId, ${_collectionFullName.value}, ${_documents[0].value})";
     }
     return "MongoInsertMessage($requestId, ${_collectionFullName.value}, ${_documents.length} documents)";
-  }
-
-  @override
-  List<Section> getSections() {
-    return [
-    	MainSection(BsonMap({
-		    'insert': _collectionName()
-	    })),
-	    PayloadSection('documents', _documents)
-    ];
   }
 }

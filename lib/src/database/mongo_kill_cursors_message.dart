@@ -9,11 +9,11 @@ class MongoKillCursorsMessage extends MongoMessage {
   }
 
   @override
-  Map<String, dynamic> toCommand() {
-	  return {
+  List<Section> toCommand() {
+	  return _asSimpleCommand({
 		  'killCursors': _collectionName(),
 		  'cursors': [cursorId]
-	  };
+	  });
   }
 
   int get messageLength {

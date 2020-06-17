@@ -1,6 +1,6 @@
 part of mongo_dart;
 
-class MongoUpdateMessage extends MongoMessage with BulkCommand {
+class MongoUpdateMessage extends MongoMessage {
   int flags;
   int numberToSkip;
   int numberToReturn;
@@ -19,7 +19,16 @@ class MongoUpdateMessage extends MongoMessage with BulkCommand {
   }
 
   @override
-  Map<String, dynamic> toCommand() => asSingleSectionPayload();
+  List<Section> toCommand() {
+	  return [
+		  MainSection(BsonMap({
+			  'update': _collectionName()
+		  })),
+		  PayloadSection('updates', [
+			  BsonMap({'q': _selector, 'u': _document})
+		  ])
+	  ];
+  }
 
   int get messageLength {
     return 16 +
@@ -44,17 +53,5 @@ class MongoUpdateMessage extends MongoMessage with BulkCommand {
 
   String toString() {
     return "MongoUpdateMessage($requestId, ${_collectionFullName.value}, ${_selector.value}, ${_document.value})";
-  }
-
-  @override
-  List<Section> getSections() {
-	  return [
-		  MainSection(BsonMap({
-			  'update': _collectionName()
-		  })),
-		  PayloadSection('updates', [
-			  BsonMap({'q': _selector, 'u': _document})
-		  ])
-	  ];
   }
 }

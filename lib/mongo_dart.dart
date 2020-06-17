@@ -63,9 +63,7 @@ part 'src/database/server_config.dart';
 
 part 'src/database/state.dart';
 
-part 'src/database/bulk_command.dart';
-
-part 'src/database/section.dart';
+part 'src/database/command_section.dart';
 
 part 'src/gridfs/grid_file.dart';
 

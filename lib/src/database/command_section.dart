@@ -9,7 +9,9 @@ abstract class Section {
 	Section(this._type);
 
 	int get byteLength => 1;
+
 	void serialize(BsonBinary buffer) => buffer.writeByte(_type.index);
+	Section.fromBuffer(BsonBinary buffer) : _type = PayloadType.values[buffer.readByte()];
 }
 
 class MainSection extends Section {
@@ -17,11 +19,15 @@ class MainSection extends Section {
 
   MainSection(this.payload) : super(PayloadType.ZERO);
 
-  @override
-  void serialize(BsonBinary buffer) {
+	@override
+	void serialize(BsonBinary buffer) {
 		super.serialize(buffer);
 		payload.packValue(buffer);
-  }
+	}
+
+	MainSection.fromBuffer(BsonBinary buffer) : super.fromBuffer(buffer) {
+		payload = BsonMap({})..unpackValue(buffer);
+	}
 
   @override
   int get byteLength => super.byteLength + payload.byteLength();
@@ -45,9 +51,20 @@ class PayloadSection extends Section {
 			document.packValue(buffer);
 	}
 
+	@override
+	PayloadSection.fromBuffer(BsonBinary buffer) : super.fromBuffer(buffer) {
+		int payloadLength = buffer.readInt32();
+		identifier = BsonCString('')..unpackValue(buffer);
+		int payloadStartOffset = buffer.offset;
+		payloadLength -= 4 + identifier.byteLength();
+		payload = [];
+		while (buffer.offset - payloadStartOffset < payloadLength)
+			payload.add(BsonMap({})..unpackValue(buffer));
+	}
+
   @override
   int get byteLength {
-		int payloadLength = payload.fold(0, (value, element) => value += element.byteLength());
+		int payloadLength = payload.fold(0, (len, sec) => len += sec.byteLength());
 		return super.byteLength + 4 + identifier.byteLength() + payloadLength;
   }
 }

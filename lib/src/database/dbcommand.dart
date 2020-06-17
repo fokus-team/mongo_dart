@@ -23,9 +23,7 @@ class DbCommand extends MongoQueryMessage {
   }
 
   @override
-  Map<String, dynamic> toCommand() {
-	  return _query.data;
-  }
+  List<Section> toCommand() => _asSimpleCommand(_query.data);
 
   static DbCommand createFindAndModifyCommand(Db db, String collectionName,
       {Map<String, dynamic> query,
