@@ -13,6 +13,8 @@ class MongoQueryMessage extends MongoMessage {
   int flags;
   int numberToSkip;
   int numberToReturn;
+  bool isFindQuery;
+  bool fromQuerySelector;
   BsonMap _query;
   BsonMap _fields;
   BsonCString get collectionNameBson => _collectionFullName;
@@ -23,7 +25,8 @@ class MongoQueryMessage extends MongoMessage {
       this.numberToSkip,
       this.numberToReturn,
       Map<String, dynamic> query,
-      Map<String, dynamic> fields) {
+      Map<String, dynamic> fields,
+      {this.isFindQuery = false, this.fromQuerySelector = true}) {
     _collectionFullName = BsonCString(collectionFullName);
     _query = BsonMap(query);
     if (fields != null) {
@@ -34,15 +37,28 @@ class MongoQueryMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
-	  var command = {
-		  'find': _collectionName(),
-		  'filter': _query.data['\$query'],
-		  'skip': numberToSkip
-	  };
-	  if (numberToReturn > 0)
-		  command['limit'] = numberToReturn;
-	  if (_fields != null)
-		  command['projection'] = _fields;
+	  Map<String, dynamic> command = {};
+	  if (isFindQuery) {
+		  command['find'] = _collectionName();
+	  	if (fromQuerySelector) {
+			  if (_query.data.containsKey(r'$query'))
+				  command['filter'] = _query.data[r'$query'];
+			  if (_query.data.containsKey(r'$orderby'))
+				  command['sort'] = _query.data[r'$orderby'];
+			  if (_query.data.containsKey(r'$hint'))
+				  command['hint'] = _query.data[r'$hint'];
+		  } else
+			  command['filter'] = _query.data;
+		  if (numberToReturn > 0)
+			  command['limit'] = numberToReturn;
+		  if (numberToSkip > 0)
+			  command['skip'] = numberToSkip;
+		  if (_fields != null)
+			  command['projection'] = _fields;
+	  } else if (fromQuerySelector)
+		  command.addAll(_query.data[r'$query'] as Map<String, dynamic>);
+	  else
+	  	command.addAll(_query.data);
 	  return _asSimpleCommand(command);
   }
 

@@ -709,7 +709,7 @@ testCursorCreation() {
 
 Future testPingRaw() async {
   DbCollection collection = db.collection('\$cmd');
-  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1));
+  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1), isFindQuery: false);
   MongoQueryMessage queryMessage = cursor.generateQueryMessage();
 
   var result = await db.queryMessage(queryMessage);
@@ -719,7 +719,7 @@ Future testPingRaw() async {
 
 Future testNextObject() async {
   DbCollection collection = db.collection('\$cmd');
-  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1));
+  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1), isFindQuery: false);
 
   var newCursor = await cursor.nextObject();
 
@@ -754,7 +754,8 @@ Future testCursorWithOpenServerCursor() async {
   var collection = db.collection(collectionName);
 
   await insertManyDocuments(collection, 1000);
-  var cursor = Cursor(db, collection, where.limit(10));
+  // Default batch size for find command is 101
+  var cursor = Cursor(db, collection, where.limit(110));
 
   await cursor.nextObject();
 

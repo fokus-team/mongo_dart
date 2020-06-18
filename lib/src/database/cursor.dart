@@ -20,6 +20,9 @@ class Cursor {
   var eachComplete;
   bool explain;
   int flags = 0;
+  bool firstBatch = true;
+  bool fromSelectorQuery = false;
+  bool isFindQuery;
 
   /// Tailable means cursor is not closed when the last data is retrieved
   set tailable(bool value) => value
@@ -67,7 +70,7 @@ class Cursor {
   /// Default value is 100 ms
   int tailableRetryInterval = 100;
 
-  Cursor(this.db, this.collection, selectorBuilderOrMap) {
+  Cursor(this.db, this.collection, selectorBuilderOrMap, {this.isFindQuery = true}) {
     if (selectorBuilderOrMap == null) {
       selector = {};
     } else if (selectorBuilderOrMap is SelectorBuilder) {
@@ -75,6 +78,7 @@ class Cursor {
       fields = selectorBuilderOrMap.paramFields;
       limit = selectorBuilderOrMap.paramLimit;
       skip = selectorBuilderOrMap.paramSkip;
+      fromSelectorQuery = true;
     } else if (selectorBuilderOrMap is Map) {
       selector = selectorBuilderOrMap as Map<String, dynamic>;
     } else {
@@ -90,7 +94,8 @@ class Cursor {
 
   MongoQueryMessage generateQueryMessage() {
     return MongoQueryMessage(
-        collection.fullName(), flags, skip, limit, selector, fields);
+        collection.fullName(), flags, skip, limit, selector, fields,
+		    isFindQuery: isFindQuery, fromQuerySelector: fromSelectorQuery);
   }
 
   MongoGetMoreMessage generateGetMoreMessage() {
@@ -103,8 +108,16 @@ class Cursor {
   }
 
   void getCursorData(MongoReplyMessage replyMessage) {
-    cursorId = replyMessage.cursorId;
-    items.addAll(replyMessage.documents);
+  	if (db._masterConnection.serverCapabilities.opMsg && replyMessage.documents.first.containsKey('cursor')) {
+		  var cursorMap = replyMessage.documents.first['cursor'];
+		  cursorId = cursorMap['id'] as int;
+		  var batchName = firstBatch ? 'firstBatch' : 'nextBatch';
+		  final batch = cursorMap[batchName] as List;
+		  items.addAll(List.from(batch));
+	  } else {
+		  cursorId = replyMessage.cursorId;
+		  items.addAll(replyMessage.documents);
+	  }
   }
 
   Future<Map<String, dynamic>> nextObject() {
@@ -113,6 +126,7 @@ class Cursor {
       return db.queryMessage(qm).then((replyMessage) {
         state = State.OPEN;
         getCursorData(replyMessage);
+        firstBatch = false;
         if (items.length > 0) {
           return Future.value(_getNextItem());
         } else {
@@ -180,7 +194,7 @@ class Cursor {
 class CommandCursor extends Cursor {
   CommandCursor(Db db, DbCollection collection, selectorBuilderOrMap)
       : super(db, collection, selectorBuilderOrMap);
-  bool firstBatch = true;
+
   @override
   MongoQueryMessage generateQueryMessage() {
     throw UnimplementedError();

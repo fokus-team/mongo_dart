@@ -1,6 +1,9 @@
 part of mongo_dart;
 
 class MongoUpdateMessage extends MongoMessage {
+	static final OPTS_UPSERT = 1 << 0;
+	static final OPTS_MULTI_UPDATE = 1 << 1;
+
   int flags;
   int numberToSkip;
   int numberToReturn;
@@ -20,13 +23,16 @@ class MongoUpdateMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
+  	Map<String, dynamic> updates = {'q': _selector, 'u': _document};
+	  if (flags & OPTS_UPSERT > 0)
+		  updates['upsert'] = true;
+	  if (flags & OPTS_MULTI_UPDATE > 0)
+		  updates['multi'] = true;
 	  return [
 		  MainSection(BsonMap({
 			  'update': _collectionName()
 		  })),
-		  PayloadSection('updates', [
-			  BsonMap({'q': _selector, 'u': _document})
-		  ])
+		  PayloadSection('updates', [BsonMap(updates)])
 	  ];
   }
 

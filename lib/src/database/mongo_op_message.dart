@@ -11,9 +11,9 @@ class MongoOpMessage extends MongoMessage {
 	MongoOpMessage.fromMessage(MongoMessage message) {
 		opcode = MongoMessage.OpMsg;
 		sections = message.toCommand();
-		if (!(sections[0] is MainSection))
+		if (!(sections.first is MainSection))
 			throw MongoDartError('${message.runtimeType} first section must be a MainSection');
-		var mainPayload = (sections[0] as MainSection).payload.data;
+		var mainPayload = (sections.first as MainSection).payload.data;
 		mainPayload['\$db'] = message._dbName();
 	}
 
@@ -31,16 +31,9 @@ class MongoOpMessage extends MongoMessage {
 		answer._requestId = _requestId;
 		answer.responseFlags = 0;
 		answer.documents = [];
-		var mainPayload = (sections[0] as MainSection).payload.data;
-		if (mainPayload.containsKey('cursor')) {
-			var cursor = mainPayload['cursor'] as Map<String, dynamic>;
-			answer.cursorId = cursor['id'] as int;
-			var batchParam = cursor.containsKey('firstBatch') ? 'firstBatch' : 'nextBatch';
-			answer.documents.addAll(List.from(cursor[batchParam] as List));
-		} else {
-			sections.skip(1).forEach((sec) => (sec as PayloadSection).asMapElement(mainPayload));
-			answer.documents.add(mainPayload);
-		}
+		var mainPayload = (sections.first as MainSection).payload.data;
+		sections.skip(1).forEach((sec) => (sec as PayloadSection).asMapElement(mainPayload));
+		answer.documents.add(mainPayload);
 		return answer;
 	}
 
