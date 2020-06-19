@@ -3,9 +3,11 @@ part of mongo_dart;
 class MongoInsertMessage extends MongoMessage {
   int flags;
   List<BsonMap> _documents;
+  WriteConcern writeConcern;
+
   MongoInsertMessage(
       String collectionFullName, List<Map<String, dynamic>> documents,
-      [this.flags = 0]) {
+      {this.flags = 0, this.writeConcern}) {
     _collectionFullName = BsonCString(collectionFullName);
     _documents = List();
     for (var document in documents) {
@@ -16,10 +18,11 @@ class MongoInsertMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
+	  Map<String, dynamic> command = {'insert': _collectionName()};
+	  if (writeConcern != null)
+		  command['writeConcern'] = writeConcern.toCommand;
 	  return [
-		  MainSection(BsonMap({
-			  'insert': _collectionName()
-		  })),
+		  MainSection(BsonMap(command)),
 		  PayloadSection('documents', _documents)
 	  ];
   }

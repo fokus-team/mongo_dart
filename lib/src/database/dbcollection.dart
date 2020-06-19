@@ -33,7 +33,7 @@ class DbCollection {
       {WriteConcern writeConcern}) {
     return Future.sync(() {
       MongoInsertMessage insertMessage =
-          MongoInsertMessage(fullName(), documents);
+          MongoInsertMessage(fullName(), documents, writeConcern: writeConcern);
       db.executeMessage(insertMessage, writeConcern);
       return db._getAcknowledgement(writeConcern: writeConcern);
     });
@@ -53,7 +53,7 @@ class DbCollection {
       }
 
       MongoUpdateMessage message = MongoUpdateMessage(
-          fullName(), _selectorBuilder2Map(selector), document, flags);
+          fullName(), _selectorBuilder2Map(selector), document, flags, writeConcern: writeConcern);
       db.executeMessage(message, writeConcern);
       return db._getAcknowledgement(writeConcern: writeConcern);
     });

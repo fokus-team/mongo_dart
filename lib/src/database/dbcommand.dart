@@ -116,7 +116,7 @@ class DbCommand extends MongoQueryMessage {
   }
 
   static DbCommand createGetLastErrorCommand(Db db, WriteConcern concern) {
-    return createQueryDbCommand(db, concern.command);
+    return createQueryDbCommand(db, concern.lastErrorCommand);
   }
 
   static DbCommand createCountCommand(Db db, String collectionName,

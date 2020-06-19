@@ -58,22 +58,26 @@ class WriteConcern {
       WriteConcern(w: "majority", wtimeout: 0, fsync: false, j: false);
 
   /// Gets the getlasterror command for this write concern.
-  Map<String, dynamic> get command {
+  Map<String, dynamic> get lastErrorCommand {
     var map = Map<String, dynamic>();
     map["getlasterror"] = 1;
-    if (w != null) {
-      map["w"] = w;
-    }
-    if (wtimeout != null) {
-      map["wtimeout"] = wtimeout;
-    }
+    map = _writeFields(map);
     if (fsync != null) {
-      map["fsync"] = fsync;
-    }
-    if (j != null) {
-      map["j"] = j;
+	    map["fsync"] = fsync;
     }
     return map;
+  }
+
+  Map<String, dynamic> get toCommand => _writeFields({});
+
+  Map<String, dynamic> _writeFields(Map<String, dynamic> map) {
+	  if (w != null)
+		  map["w"] = w;
+	  if (wtimeout != null)
+		  map["wtimeout"] = wtimeout;
+	  if (j != null)
+		  map["j"] = j;
+	  return map;
   }
 }
 
@@ -275,7 +279,7 @@ class Db {
       [Map<String, dynamic> selector = const {}, WriteConcern writeConcern]) {
     return Future.sync(() {
       executeMessage(
-          MongoRemoveMessage("$databaseName.$collectionName", selector),
+          MongoRemoveMessage("$databaseName.$collectionName", selector, writeConcern),
           writeConcern);
       return _getAcknowledgement(writeConcern: writeConcern);
     });
