@@ -447,46 +447,64 @@ class Db {
   }
 
   Future<Map<String, dynamic>> createIndex(String collectionName,
-      {String key,
-      Map<String, dynamic> keys,
-      bool unique,
-      bool sparse,
-      bool background,
-      bool dropDups,
+      {String key, Map<String, dynamic> keys,
+      bool unique, bool sparse, bool background, bool dropDups,
       Map<String, dynamic> partialFilterExpression,
-      String name}) {
+      String name, WriteConcern writeConcern}) {
     return Future.sync(() async {
       var selector = <String, dynamic>{};
-      selector['ns'] = '$databaseName.$collectionName';
       keys = _setKeys(key, keys);
       selector['key'] = keys;
-
-      if (unique == true) {
-        selector['unique'] = true;
-      } else {
-        selector['unique'] = false;
+      if (name == null) {
+	      name = _createIndexName(keys);
       }
+      selector['name'] = name;
+      selector['unique'] = unique;
       if (sparse == true) {
         selector['sparse'] = true;
       }
       if (background == true) {
         selector['background'] = true;
       }
-      if (dropDups == true) {
-        selector['dropDups'] = true;
-      }
       if (partialFilterExpression != null) {
-        selector['partialFilterExpression'] = partialFilterExpression;
+	      selector['partialFilterExpression'] = partialFilterExpression;
       }
-      if (name == null) {
-        name = _createIndexName(keys);
+			MongoMessage message;
+      if (_masterConnection.serverCapabilities.indexesCommands) {
+      	var command = {
+      		'createIndexes': collectionName,
+		      'indexes': [selector]
+      	};
+	      if (writeConcern != null)
+		      command['writeConcern'] = writeConcern.toCommand;
+	      message = DbCommand.createIndexCommand(this, collectionName, command);
+      } else {
+	      selector['ns'] = '$databaseName.$collectionName';
+	      if (dropDups == true) {
+		      selector['dropDups'] = true;
+	      }
+	      message = MongoInsertMessage(
+			      '$databaseName.${DbCommand.SYSTEM_INDEX_COLLECTION}', [selector]);
       }
-      selector['name'] = name;
-      MongoInsertMessage insertMessage = MongoInsertMessage(
-          '$databaseName.${DbCommand.SYSTEM_INDEX_COLLECTION}', [selector]);
-      await executeMessage(insertMessage, _writeConcern);
+      await executeMessage(message, _writeConcern);
       return getLastError();
     });
+  }
+
+  /// Removes indexes from collection
+  /// ##[name]
+  /// Name of the index to remove, specify * to remove all but the default _id index
+  Future<Map<String, dynamic>> removeIndex(String collectionName, {String name, WriteConcern writeConcern}) {
+	  Map<String, dynamic> command = {
+		  'dropIndexes': collectionName,
+		  'index': name
+	  };
+	  if (writeConcern != null)
+		  command['writeConcern'] = writeConcern.toCommand;
+	  return Future.sync(() {
+		  executeMessage(DbCommand.createIndexCommand(this, collectionName, command), writeConcern);
+		  return getLastError();
+	  });
   }
 
   Map<String, dynamic> _setKeys(String key, Map<String, dynamic> keys) {

@@ -910,6 +910,16 @@ Future testIndexCreation() async {
   expect(res['ok'], 1.0);
 }
 
+Future testIndexRemoval() async {
+	String collectionName = getRandomCollectionName();
+	var collection = db.collection(collectionName);
+
+	var res = await db.createIndex(collectionName, key: 'a', name: 'a');
+	expect(res['ok'], 1.0);
+	res = await collection.removeIndex(name: 'a');
+	expect(res['ok'], 1.0);
+}
+
 Future testEnsureIndexWithIndexCreation() async {
   String collectionName = getRandomCollectionName();
   var collection = db.collection(collectionName);
@@ -1314,6 +1324,7 @@ main() {
     group('Indexes tests:', () {
       test('testGetIndexes', testGetIndexes);
       test('testIndexCreation', testIndexCreation);
+      test('testIndexRemoval', testIndexRemoval);
       test(
           'testEnsureIndexWithIndexCreation', testEnsureIndexWithIndexCreation);
       test('testIndexCreationErrorHandling', testIndexCreationErrorHandling);

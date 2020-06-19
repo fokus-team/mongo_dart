@@ -146,7 +146,7 @@ class DbCollection {
   /// the existing indexes on the collection. You must call `getIndexes()`
   ///  on a collection
   Future<List<Map<String, dynamic>>> getIndexes() {
-    if (db._masterConnection.serverCapabilities.listIndexes) {
+    if (db._masterConnection.serverCapabilities.indexesCommands) {
       return ListIndexesCursor(db, this).stream.toList();
     } else {
       /// Pre MongoDB v3.0 API
@@ -157,6 +157,21 @@ class DbCollection {
           .stream
           .toList();
     }
+  }
+
+  Future<Map<String, dynamic>> createIndex({String key, Map<String, dynamic> keys,
+	  bool unique, bool sparse, bool background, bool dropDups,
+	  Map<String, dynamic> partialFilterExpression,
+	  String name, WriteConcern writeConcern}) {
+	  return db.createIndex(collectionName, key: key, keys: keys, unique: unique, sparse: sparse, background: background,
+			  dropDups: dropDups,partialFilterExpression: partialFilterExpression, name: name, writeConcern: writeConcern);
+  }
+
+	/// Removes indexes from collection
+  /// ##[name]
+  /// Name of the index to remove, specify * to remove all but the default _id index
+  Future<Map<String, dynamic>> removeIndex({String name, WriteConcern writeConcern}) {
+	  return db.removeIndex(collectionName, name: name, writeConcern: writeConcern);
   }
 
   Map<String, dynamic> _selectorBuilder2Map(selector) {
