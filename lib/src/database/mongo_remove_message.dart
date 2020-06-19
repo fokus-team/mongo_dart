@@ -1,6 +1,8 @@
 part of mongo_dart;
 
 class MongoRemoveMessage extends MongoMessage {
+	static final OPTS_SINGLE = 1 << 0;
+
   int flags;
   BsonMap _selector;
   WriteConcern writeConcern;
@@ -20,7 +22,7 @@ class MongoRemoveMessage extends MongoMessage {
 	  return [
 		  MainSection(BsonMap(command)),
 		  PayloadSection('deletes', [
-			  BsonMap({'q': _selector, 'limit': 0})
+			  BsonMap({'q': _selector, 'limit': (flags & OPTS_SINGLE > 0 ? 1 : 0)})
 		  ])
 	  ];
   }

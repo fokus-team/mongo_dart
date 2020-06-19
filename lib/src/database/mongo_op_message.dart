@@ -32,6 +32,8 @@ class MongoOpMessage extends MongoMessage {
 		answer.responseFlags = 0;
 		answer.documents = [];
 		var mainPayload = (sections.first as MainSection).payload.data;
+		if (mainPayload.containsKey('ok') && mainPayload['ok'] == 0)
+			answer.responseFlags |= MongoReplyMessage.FLAGS_QUERY_FAILURE;
 		sections.skip(1).forEach((sec) => (sec as PayloadSection).asMapElement(mainPayload));
 		answer.documents.add(mainPayload);
 		return answer;
