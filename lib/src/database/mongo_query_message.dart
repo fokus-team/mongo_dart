@@ -37,47 +37,47 @@ class MongoQueryMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
-	  Map<String, dynamic> command = {};
-	  if (isFindQuery) {
-			_writeFindCommand(command);
-		  _writeFindFlags(command);
-	  } else if (fromQuerySelector)
-		  command.addAll(_query.data[r'$query'] as Map<String, dynamic>);
-	  else
-	  	command.addAll(_query.data);
-	  return _asSimpleCommand(command);
+    Map<String, dynamic> command = {};
+    if (isFindQuery) {
+      _writeFindCommand(command);
+      _writeFindFlags(command);
+    } else if (fromQuerySelector)
+      command.addAll(_query.data[r'$query'] as Map<String, dynamic>);
+    else
+      command.addAll(_query.data);
+    return _asSimpleCommand(command);
   }
 
   void _writeFindCommand(Map<String, dynamic> command) {
-	  command['find'] = _collectionName();
-	  if (fromQuerySelector) {
-		  if (_query.data.containsKey(r'$query'))
-			  command['filter'] = _query.data[r'$query'];
-		  if (_query.data.containsKey(r'$orderby'))
-			  command['sort'] = _query.data[r'$orderby'];
-		  if (_query.data.containsKey(r'$hint'))
-			  command['hint'] = _query.data[r'$hint'];
-	  } else
-		  command['filter'] = _query.data;
-	  if (numberToReturn > 0)
-		  command['limit'] = numberToReturn;
-	  if (numberToSkip > 0)
-		  command['skip'] = numberToSkip;
-	  if (_fields != null)
-		  command['projection'] = _fields;
+    command['find'] = _collectionName();
+    if (fromQuerySelector) {
+      if (_query.data.containsKey(r'$query'))
+        command['filter'] = _query.data[r'$query'];
+      if (_query.data.containsKey(r'$orderby'))
+        command['sort'] = _query.data[r'$orderby'];
+      if (_query.data.containsKey(r'$hint'))
+        command['hint'] = _query.data[r'$hint'];
+    } else
+      command['filter'] = _query.data;
+    if (numberToReturn > 0)
+      command['limit'] = numberToReturn;
+    if (numberToSkip > 0)
+      command['skip'] = numberToSkip;
+    if (_fields != null)
+      command['projection'] = _fields;
   }
 
   void _writeFindFlags(Map<String, dynamic> command) {
-	  if (flags & OPTS_TAILABLE_CURSOR > 0)
-		  command['tailable'] = true;
-	  if (flags & OPTS_OPLOG_REPLY > 0)
-		  command['oplogReplay'] = true;
-	  if (flags & OPTS_NO_CURSOR_TIMEOUT > 0)
-		  command['noCursorTimeout'] = true;
-	  if (flags & OPTS_AWAIT_DATA > 0)
-		  command['awaitData'] = true;
-	  if (flags & OPTS_PARTIAL > 0)
-		  command['allowPartialResults'] = true;
+    if (flags & OPTS_TAILABLE_CURSOR > 0)
+      command['tailable'] = true;
+    if (flags & OPTS_OPLOG_REPLY > 0)
+      command['oplogReplay'] = true;
+    if (flags & OPTS_NO_CURSOR_TIMEOUT > 0)
+      command['noCursorTimeout'] = true;
+    if (flags & OPTS_AWAIT_DATA > 0)
+      command['awaitData'] = true;
+    if (flags & OPTS_PARTIAL > 0)
+      command['allowPartialResults'] = true;
   }
 
   int get messageLength {

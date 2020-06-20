@@ -63,7 +63,7 @@ class WriteConcern {
     map["getlasterror"] = 1;
     map = _writeFields(map);
     if (fsync != null) {
-	    map["fsync"] = fsync;
+      map["fsync"] = fsync;
     }
     return map;
   }
@@ -71,13 +71,13 @@ class WriteConcern {
   Map<String, dynamic> get toCommand => _writeFields({});
 
   Map<String, dynamic> _writeFields(Map<String, dynamic> map) {
-	  if (w != null)
-		  map["w"] = w;
-	  if (wtimeout != null)
-		  map["wtimeout"] = wtimeout;
-	  if (j != null)
-		  map["j"] = j;
-	  return map;
+    if (w != null)
+      map["w"] = w;
+    if (wtimeout != null)
+      map["wtimeout"] = wtimeout;
+    if (j != null)
+      map["j"] = j;
+    return map;
   }
 }
 
@@ -335,10 +335,10 @@ class Db {
   }
 
   MongoMessage _getMessageToSend(MongoMessage message) {
-  	// OP_MSG can be used only after completed handshake
-	  if (_masterConnection.serverCapabilities.opMsg && state != State.INIT && state != State.OPENING)
-		  message = MongoOpMessage.fromMessage(message);
-	  return message;
+    // OP_MSG can be used only after completed handshake
+    if (_masterConnection.serverCapabilities.opMsg && state != State.INIT && state != State.OPENING)
+      message = MongoOpMessage.fromMessage(message);
+    return message;
   }
 
   Stream<Map<String, dynamic>> _listCollectionsCursor(
@@ -456,7 +456,7 @@ class Db {
       keys = _setKeys(key, keys);
       selector['key'] = keys;
       if (name == null) {
-	      name = _createIndexName(keys);
+        name = _createIndexName(keys);
       }
       selector['name'] = name;
       selector['unique'] = unique;
@@ -467,24 +467,24 @@ class Db {
         selector['background'] = true;
       }
       if (partialFilterExpression != null) {
-	      selector['partialFilterExpression'] = partialFilterExpression;
+        selector['partialFilterExpression'] = partialFilterExpression;
       }
-			MongoMessage message;
+      MongoMessage message;
       if (_masterConnection.serverCapabilities.indexesCommands) {
-      	var command = {
-      		'createIndexes': collectionName,
-		      'indexes': [selector]
-      	};
-	      if (writeConcern != null)
-		      command['writeConcern'] = writeConcern.toCommand;
-	      message = DbCommand.createIndexCommand(this, collectionName, command);
+        var command = {
+          'createIndexes': collectionName,
+          'indexes': [selector]
+        };
+        if (writeConcern != null)
+          command['writeConcern'] = writeConcern.toCommand;
+        message = DbCommand.createIndexCommand(this, collectionName, command);
       } else {
-	      selector['ns'] = '$databaseName.$collectionName';
-	      if (dropDups == true) {
-		      selector['dropDups'] = true;
-	      }
-	      message = MongoInsertMessage(
-			      '$databaseName.${DbCommand.SYSTEM_INDEX_COLLECTION}', [selector]);
+        selector['ns'] = '$databaseName.$collectionName';
+        if (dropDups == true) {
+          selector['dropDups'] = true;
+        }
+        message = MongoInsertMessage(
+            '$databaseName.${DbCommand.SYSTEM_INDEX_COLLECTION}', [selector]);
       }
       await executeMessage(message, _writeConcern);
       return getLastError();
@@ -495,16 +495,16 @@ class Db {
   /// ##[name]
   /// Name of the index to remove, specify * to remove all but the default _id index
   Future<Map<String, dynamic>> removeIndex(String collectionName, {String name, WriteConcern writeConcern}) {
-	  Map<String, dynamic> command = {
-		  'dropIndexes': collectionName,
-		  'index': name
-	  };
-	  if (writeConcern != null)
-		  command['writeConcern'] = writeConcern.toCommand;
-	  return Future.sync(() {
-		  executeMessage(DbCommand.createIndexCommand(this, collectionName, command), writeConcern);
-		  return getLastError();
-	  });
+    Map<String, dynamic> command = {
+      'dropIndexes': collectionName,
+      'index': name
+    };
+    if (writeConcern != null)
+      command['writeConcern'] = writeConcern.toCommand;
+    return Future.sync(() {
+      executeMessage(DbCommand.createIndexCommand(this, collectionName, command), writeConcern);
+      return getLastError();
+    });
   }
 
   Map<String, dynamic> _setKeys(String key, Map<String, dynamic> keys) {

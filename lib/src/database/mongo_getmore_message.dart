@@ -12,10 +12,10 @@ class MongoGetMoreMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
-		return _asSimpleCommand({
-			'getMore': cursorId,
-			'collection': _collectionName()
-		});
+    return _asSimpleCommand({
+      'getMore': cursorId,
+      'collection': _collectionName()
+    });
   }
 
   int get messageLength {

@@ -95,7 +95,7 @@ class Cursor {
   MongoQueryMessage generateQueryMessage() {
     return MongoQueryMessage(
         collection.fullName(), flags, skip, limit, selector, fields,
-		    isFindQuery: isFindQuery, fromQuerySelector: fromSelectorQuery);
+        isFindQuery: isFindQuery, fromQuerySelector: fromSelectorQuery);
   }
 
   MongoGetMoreMessage generateGetMoreMessage() {
@@ -108,16 +108,16 @@ class Cursor {
   }
 
   void getCursorData(MongoReplyMessage replyMessage) {
-  	if (db._masterConnection.serverCapabilities.opMsg && replyMessage.documents.first.containsKey('cursor')) {
-		  var cursorMap = replyMessage.documents.first['cursor'];
-		  cursorId = cursorMap['id'] as int;
-		  var batchName = firstBatch ? 'firstBatch' : 'nextBatch';
-		  final batch = cursorMap[batchName] as List;
-		  items.addAll(List.from(batch));
-	  } else {
-		  cursorId = replyMessage.cursorId;
-		  items.addAll(replyMessage.documents);
-	  }
+    if (db._masterConnection.serverCapabilities.opMsg && replyMessage.documents.first.containsKey('cursor')) {
+      var cursorMap = replyMessage.documents.first['cursor'];
+      cursorId = cursorMap['id'] as int;
+      var batchName = firstBatch ? 'firstBatch' : 'nextBatch';
+      final batch = cursorMap[batchName] as List;
+      items.addAll(List.from(batch));
+    } else {
+      cursorId = replyMessage.cursorId;
+      items.addAll(replyMessage.documents);
+    }
   }
 
   Future<Map<String, dynamic>> nextObject() {

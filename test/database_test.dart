@@ -911,13 +911,13 @@ Future testIndexCreation() async {
 }
 
 Future testIndexRemoval() async {
-	String collectionName = getRandomCollectionName();
-	var collection = db.collection(collectionName);
+  String collectionName = getRandomCollectionName();
+  var collection = db.collection(collectionName);
 
-	var res = await db.createIndex(collectionName, key: 'a', name: 'a');
-	expect(res['ok'], 1.0);
-	res = await collection.removeIndex(name: 'a');
-	expect(res['ok'], 1.0);
+  var res = await db.createIndex(collectionName, key: 'a', name: 'a');
+  expect(res['ok'], 1.0);
+  res = await collection.removeIndex(name: 'a');
+  expect(res['ok'], 1.0);
 }
 
 Future testEnsureIndexWithIndexCreation() async {

@@ -18,13 +18,13 @@ class MongoInsertMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
-	  Map<String, dynamic> command = {'insert': _collectionName()};
-	  if (writeConcern != null)
-		  command['writeConcern'] = writeConcern.toCommand;
-	  return [
-		  MainSection(BsonMap(command)),
-		  PayloadSection('documents', _documents)
-	  ];
+    Map<String, dynamic> command = {'insert': _collectionName()};
+    if (writeConcern != null)
+      command['writeConcern'] = writeConcern.toCommand;
+    return [
+      MainSection(BsonMap(command)),
+      PayloadSection('documents', _documents)
+    ];
   }
 
   int get messageLength {

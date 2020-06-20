@@ -1,7 +1,7 @@
 part of mongo_dart;
 
 class MongoRemoveMessage extends MongoMessage {
-	static final OPTS_SINGLE = 1 << 0;
+  static final OPTS_SINGLE = 1 << 0;
 
   int flags;
   BsonMap _selector;
@@ -16,15 +16,15 @@ class MongoRemoveMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
-	  Map<String, dynamic> command = {'delete': _collectionName()};
-	  if (writeConcern != null)
-		  command['writeConcern'] = writeConcern.toCommand;
-	  return [
-		  MainSection(BsonMap(command)),
-		  PayloadSection('deletes', [
-			  BsonMap({'q': _selector, 'limit': (flags & OPTS_SINGLE > 0 ? 1 : 0)})
-		  ])
-	  ];
+    Map<String, dynamic> command = {'delete': _collectionName()};
+    if (writeConcern != null)
+      command['writeConcern'] = writeConcern.toCommand;
+    return [
+      MainSection(BsonMap(command)),
+      PayloadSection('deletes', [
+        BsonMap({'q': _selector, 'limit': (flags & OPTS_SINGLE > 0 ? 1 : 0)})
+      ])
+    ];
   }
 
   int get messageLength {

@@ -185,13 +185,13 @@ class DbCommand extends MongoQueryMessage {
   }
 
   static DbCommand createIndexCommand(Db db, String collectionName, Map<String, dynamic> command) {
-	  return DbCommand(
-			  db,
-			  collectionName,
-			  MongoQueryMessage.OPTS_NO_CURSOR_TIMEOUT,
-			  0,
-			  -1,
-			  command,
-			  null);
+    return DbCommand(
+        db,
+        collectionName,
+        MongoQueryMessage.OPTS_NO_CURSOR_TIMEOUT,
+        0,
+        -1,
+        command,
+        null);
   }
 }

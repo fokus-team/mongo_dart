@@ -26,7 +26,7 @@ class _ServerCapabilities {
       indexesCommands = true;
     }
     if (maxWireVersion >= 6) {
-	    opMsg = true;
+      opMsg = true;
     }
   }
 }

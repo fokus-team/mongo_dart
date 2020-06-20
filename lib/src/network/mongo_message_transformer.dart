@@ -15,14 +15,14 @@ class MongoMessageHandler {
   }
 
   static MongoReplyMessage _parseResponseMessage(BsonBinary buffer) {
-	  buffer.offset = 12;
-	  int opcodeFromWire = buffer.readInt32();
-	  buffer.offset = 0;
-	  if (opcodeFromWire == MongoMessage.OpMsg)
-		  return MongoOpMessage.fromResponse(buffer).unpack();
-	  if (opcodeFromWire == MongoMessage.Reply)
-		  return MongoReplyMessage()..deserialize(buffer);
-	  throw MongoDartError('Unexpected response message opcode $opcodeFromWire');
+    buffer.offset = 12;
+    int opcodeFromWire = buffer.readInt32();
+    buffer.offset = 0;
+    if (opcodeFromWire == MongoMessage.OpMsg)
+      return MongoOpMessage.fromResponse(buffer).unpack();
+    if (opcodeFromWire == MongoMessage.Reply)
+      return MongoReplyMessage()..deserialize(buffer);
+    throw MongoDartError('Unexpected response message opcode $opcodeFromWire');
   }
 
   void handleDone(EventSink<MongoReplyMessage> sink) {

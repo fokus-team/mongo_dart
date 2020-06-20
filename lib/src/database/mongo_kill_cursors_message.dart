@@ -10,10 +10,10 @@ class MongoKillCursorsMessage extends MongoMessage {
 
   @override
   List<Section> toCommand() {
-	  return _asSimpleCommand({
-		  'killCursors': _collectionName(),
-		  'cursors': [cursorId]
-	  });
+    return _asSimpleCommand({
+      'killCursors': _collectionName(),
+      'cursors': [cursorId]
+    });
   }
 
   int get messageLength {

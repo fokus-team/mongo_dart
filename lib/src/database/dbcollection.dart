@@ -74,8 +74,8 @@ class DbCollection {
   Future<Map<String, dynamic>> findOne([selector]) {
     Cursor cursor = Cursor(db, this, selector);
     Future<Map<String, dynamic>> result = cursor.nextObject().then((result) {
-	    cursor.close();
-	    return result;
+      cursor.close();
+      return result;
     });
     return result;
   }
@@ -160,18 +160,18 @@ class DbCollection {
   }
 
   Future<Map<String, dynamic>> createIndex({String key, Map<String, dynamic> keys,
-	  bool unique, bool sparse, bool background, bool dropDups,
-	  Map<String, dynamic> partialFilterExpression,
-	  String name, WriteConcern writeConcern}) {
-	  return db.createIndex(collectionName, key: key, keys: keys, unique: unique, sparse: sparse, background: background,
-			  dropDups: dropDups,partialFilterExpression: partialFilterExpression, name: name, writeConcern: writeConcern);
+    bool unique, bool sparse, bool background, bool dropDups,
+    Map<String, dynamic> partialFilterExpression,
+    String name, WriteConcern writeConcern}) {
+    return db.createIndex(collectionName, key: key, keys: keys, unique: unique, sparse: sparse, background: background,
+        dropDups: dropDups,partialFilterExpression: partialFilterExpression, name: name, writeConcern: writeConcern);
   }
 
-	/// Removes indexes from collection
+  /// Removes indexes from collection
   /// ##[name]
   /// Name of the index to remove, specify * to remove all but the default _id index
   Future<Map<String, dynamic>> removeIndex({String name, WriteConcern writeConcern}) {
-	  return db.removeIndex(collectionName, name: name, writeConcern: writeConcern);
+    return db.removeIndex(collectionName, name: name, writeConcern: writeConcern);
   }
 
   Map<String, dynamic> _selectorBuilder2Map(selector) {
