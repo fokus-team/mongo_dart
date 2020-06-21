@@ -21,29 +21,29 @@ class GridIn extends GridFSFile {
     this.filename = filename;
   }
 
-  Future<Map<String, dynamic>> save([int chunkSize]) {
+  Future<Response> save([int chunkSize]) {
     if (chunkSize == null) {
       chunkSize = this.chunkSize;
     }
 
-    Future<Map<String, dynamic>> result;
+    Future<Response> result;
     if (!savedChunks) {
       result = saveChunks(chunkSize);
     } else {
-      result = Future.value({'ok': 1.0});
+      result = Future.value(Response(success: true));
     }
     return result;
   }
 
-  Future<Map<String, dynamic>> saveChunks([int chunkSize = 0]) {
+  Future<Response> saveChunks([int chunkSize = 0]) {
     List<Future> futures = List();
-    Completer<Map<String, dynamic>> completer = Completer();
+    Completer<Response> completer = Completer();
 
     _onDone() {
       Future.wait(futures).then((list) {
         return finishData();
       }).then((map) {
-        completer.complete({});
+        completer.complete(Response());
       });
     }
 
@@ -64,11 +64,11 @@ class GridIn extends GridFSFile {
   }
   // TODO(tsander): OutputStream??
 
-  Future<Map<String, dynamic>> dumpBuffer(List<int> writeBuffer) {
+  Future<Response> dumpBuffer(List<int> writeBuffer) {
     contentToDigest.addAll(writeBuffer);
     if (writeBuffer.length == 0) {
       // Chunk is empty, may be last chunk
-      return Future.value({});
+      return Future.value(Response());
     }
 
     Map<String, dynamic> chunk = {

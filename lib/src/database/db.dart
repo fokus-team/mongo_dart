@@ -101,6 +101,7 @@ class Db {
       _connectionManager.masterConnectionVerified;
   WriteConcern _writeConcern;
   AuthenticationScheme _authenticationScheme;
+  bool useLegacyErrorChecking;
 
   String toString() => 'Db($databaseName,$_debugInfo)';
 
@@ -207,7 +208,24 @@ class Db {
     connection.execute(_getMessageToSend(message), writeConcern == WriteConcern.ERRORS_IGNORED);
   }
 
-  Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED}) {
+  Future<Response> executeWithAcknowledgement(MongoMessage message, [WriteConcern writeConcern]) {
+    if (writeConcern == null)
+      writeConcern = _writeConcern;
+
+    if (writeConcern == WriteConcern.ERRORS_IGNORED) {
+      executeMessage(message, writeConcern);
+      return Future.value(Response(success: true));
+    }
+    if (!useLegacyErrorChecking && _masterConnection.serverCapabilities.opMsg)
+      return queryMessage(message).then((response) => _parseCommandResponse(response, (doc) => Response.fromCommand(doc)));
+    executeMessage(message, writeConcern);
+    return getLastError(writeConcern);
+  }
+
+  /// ## [useLegacyErrorChecking]
+  /// when calling newer commands like insert, update and delete that return their result with errors rely on the legacy getLastError command as a response
+  Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED, bool useLegacyErrorChecking = false}) {
+    this.useLegacyErrorChecking = useLegacyErrorChecking;
     return Future.sync(() {
       if (state == State.OPENING) {
         throw MongoDartError('Attempt to open db in state $state');
@@ -225,38 +243,32 @@ class Db {
     });
   }
 
-  Future<Map<String, dynamic>> executeDbCommand(MongoMessage message,
+  Future<Response> executeDbCommand(MongoMessage message,
       {_Connection connection}) async {
     if (connection == null) {
       connection = _masterConnectionVerified;
     }
-
-    Completer<Map<String, dynamic>> result = Completer();
-
     var replyMessage = await connection.query(_getMessageToSend(message));
-    var firstRepliedDocument = replyMessage.documents[0];
-    var errorMessage = "";
+    return _parseCommandResponse(replyMessage, (doc) => Response.fromMessage(doc));
+  }
+
+  Future<Response> _parseCommandResponse(MongoReplyMessage replyMessage, Response Function(Map<String, dynamic>) getResponse) {
+    Completer<Response> result = Completer();
 
     if (replyMessage.documents.isEmpty) {
-      errorMessage =
-          "Error executing Db command, documents are empty $replyMessage";
-
+      var errorMessage = "Error executing command, documents are empty $replyMessage";
       print("Error: $errorMessage");
 
-      var m = Map<String, dynamic>();
-      m["errmsg"] = errorMessage;
-
-      result.completeError(m);
-    } else if (documentIsNotAnError(firstRepliedDocument)) {
-      result.complete(firstRepliedDocument);
+      result.completeError(Response.fromError(RequestError(errorMessage)));
     } else {
-      result.completeError(firstRepliedDocument);
+      var response = getResponse(replyMessage.documents[0]);
+      if (response.errors.isEmpty)
+        result.complete(response);
+      else
+        result.completeError(response.errors[0]);
     }
     return result.future;
   }
-
-  bool documentIsNotAnError(firstRepliedDocument) =>
-      firstRepliedDocument['ok'] == 1.0 && firstRepliedDocument['err'] == null;
 
   Future<bool> dropCollection(String collectionName) async {
     var collectionInfos = await getCollectionInfos({'name': collectionName});
@@ -275,17 +287,12 @@ class Db {
     return executeDbCommand(DbCommand.createDropDatabaseCommand(this));
   }
 
-  Future<Map<String, dynamic>> removeFromCollection(String collectionName,
+  Future<Response> removeFromCollection(String collectionName,
       [Map<String, dynamic> selector = const {}, WriteConcern writeConcern]) {
-    return Future.sync(() {
-      executeMessage(
-          MongoRemoveMessage("$databaseName.$collectionName", selector, writeConcern),
-          writeConcern);
-      return _getAcknowledgement(writeConcern: writeConcern);
-    });
+    return executeWithAcknowledgement(MongoRemoveMessage("$databaseName.$collectionName", selector, writeConcern), writeConcern);
   }
 
-  Future<Map<String, dynamic>> getLastError([WriteConcern writeConcern]) {
+  Future<Response> getLastError([WriteConcern writeConcern]) {
     if (writeConcern == null) {
       writeConcern = _writeConcern;
     }
@@ -293,22 +300,22 @@ class Db {
         DbCommand.createGetLastErrorCommand(this, writeConcern));
   }
 
-  Future<Map<String, dynamic>> getNonce({_Connection connection}) {
+  Future<Response> getNonce({_Connection connection}) {
     return executeDbCommand(DbCommand.createGetNonceCommand(this),
         connection: connection);
   }
 
-  Future<Map<String, dynamic>> getBuildInfo({_Connection connection}) {
+  Future<Response> getBuildInfo({_Connection connection}) {
     return executeDbCommand(DbCommand.createBuildInfoCommand(this),
         connection: connection);
   }
 
-  Future<Map<String, dynamic>> isMaster({_Connection connection}) {
+  Future<Response> isMaster({_Connection connection}) {
     return executeDbCommand(DbCommand.createIsMasterCommand(this),
         connection: connection);
   }
 
-  Future<Map<String, dynamic>> wait() {
+  Future<Response> wait() {
     return getLastError();
   }
 
@@ -446,7 +453,7 @@ class Db {
     return name;
   }
 
-  Future<Map<String, dynamic>> createIndex(String collectionName,
+  Future<Response> createIndex(String collectionName,
       {String key, Map<String, dynamic> keys,
       bool unique, bool sparse, bool background, bool dropDups,
       Map<String, dynamic> partialFilterExpression,
@@ -494,7 +501,7 @@ class Db {
   /// Removes indexes from collection
   /// ##[name]
   /// Name of the index to remove, specify * to remove all but the default _id index
-  Future<Map<String, dynamic>> removeIndex(String collectionName, {String name, WriteConcern writeConcern}) {
+  Future<Response> removeIndex(String collectionName, {String name, WriteConcern writeConcern}) {
     Map<String, dynamic> command = {
       'dropIndexes': collectionName,
       'index': name
@@ -524,7 +531,7 @@ class Db {
     return keys;
   }
 
-  Future ensureIndex(String collectionName,
+  Future<Response> ensureIndex(String collectionName,
       {String key,
       Map<String, dynamic> keys,
       bool unique,
@@ -541,7 +548,7 @@ class Db {
     }
 
     if (indexInfos.any((info) => info['name'] == name)) {
-      return {'ok': 1.0, 'result': 'index preexists'};
+      return Response(success: true);
     }
 
     var createdIndex = await createIndex(collectionName,
@@ -554,18 +561,5 @@ class Db {
         name: name);
 
     return createdIndex;
-  }
-
-  Future<Map<String, dynamic>> _getAcknowledgement(
-      {WriteConcern writeConcern}) {
-    if (writeConcern == null) {
-      writeConcern = _writeConcern;
-    }
-
-    if (writeConcern == WriteConcern.ERRORS_IGNORED) {
-      return Future.value({'ok': 1.0});
-    } else {
-      return getLastError(writeConcern);
-    }
   }
 }

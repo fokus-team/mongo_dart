@@ -16,7 +16,7 @@ class GridFSFile {
     this.data = data;
   }
 
-  Future<Map<String, dynamic>> save() {
+  Future<Response> save() {
     if (fs == null) {
       throw MongoDartError('Need fs');
     }

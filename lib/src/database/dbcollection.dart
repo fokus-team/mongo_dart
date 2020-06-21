@@ -8,7 +8,7 @@ class DbCollection {
 
   String fullName() => "${db.databaseName}.$collectionName";
 
-  Future<Map<String, dynamic>> save(Map<String, dynamic> document,
+  Future<Response> save(Map<String, dynamic> document,
       {WriteConcern writeConcern}) {
     var id;
     bool createId = false;
@@ -29,17 +29,16 @@ class DbCollection {
     }
   }
 
-  Future<Map<String, dynamic>> insertAll(List<Map<String, dynamic>> documents,
+  Future<Response> insertAll(List<Map<String, dynamic>> documents,
       {WriteConcern writeConcern}) {
     return Future.sync(() {
       MongoInsertMessage insertMessage =
           MongoInsertMessage(fullName(), documents, writeConcern: writeConcern);
-      db.executeMessage(insertMessage, writeConcern);
-      return db._getAcknowledgement(writeConcern: writeConcern);
+      return db.executeWithAcknowledgement(insertMessage, writeConcern);
     });
   }
 
-  Future<Map<String, dynamic>> update(selector, document,
+  Future<Response> update(selector, document,
       {bool upsert = false,
       bool multiUpdate = false,
       WriteConcern writeConcern}) {
@@ -54,8 +53,7 @@ class DbCollection {
 
       MongoUpdateMessage message = MongoUpdateMessage(
           fullName(), _selectorBuilder2Map(selector), document, flags, writeConcern: writeConcern);
-      db.executeMessage(message, writeConcern);
-      return db._getAcknowledgement(writeConcern: writeConcern);
+      return db.executeWithAcknowledgement(message, writeConcern);
     });
   }
 
@@ -106,7 +104,7 @@ class DbCollection {
 
   Future<bool> drop() => db.dropCollection(collectionName);
 
-  Future<Map<String, dynamic>> remove(selector, {WriteConcern writeConcern}) =>
+  Future<Response> remove(selector, {WriteConcern writeConcern}) =>
       db.removeFromCollection(
           collectionName, _selectorBuilder2Map(selector), writeConcern);
 
@@ -119,11 +117,11 @@ class DbCollection {
     });
   }
 
-  Future<Map<String, dynamic>> distinct(String field, [selector]) =>
+  Future<Response> distinct(String field, [selector]) =>
       db.executeDbCommand(DbCommand.createDistinctCommand(
           db, collectionName, field, _selectorBuilder2Map(selector)));
 
-  Future<Map<String, dynamic>> aggregate(List pipeline,
+  Future<Response> aggregate(List pipeline,
       {bool allowDiskUse = false, Map<String, dynamic> cursor}) {
     var cmd = DbCommand.createAggregateCommand(db, collectionName, pipeline,
         allowDiskUse: allowDiskUse, cursor: cursor);
@@ -137,7 +135,7 @@ class DbCollection {
         .stream;
   }
 
-  Future<Map<String, dynamic>> insert(Map<String, dynamic> document,
+  Future<Response> insert(Map<String, dynamic> document,
           {WriteConcern writeConcern}) =>
       insertAll([document], writeConcern: writeConcern);
 
@@ -159,7 +157,7 @@ class DbCollection {
     }
   }
 
-  Future<Map<String, dynamic>> createIndex({String key, Map<String, dynamic> keys,
+  Future<Response> createIndex({String key, Map<String, dynamic> keys,
     bool unique, bool sparse, bool background, bool dropDups,
     Map<String, dynamic> partialFilterExpression,
     String name, WriteConcern writeConcern}) {
@@ -170,7 +168,7 @@ class DbCollection {
   /// Removes indexes from collection
   /// ##[name]
   /// Name of the index to remove, specify * to remove all but the default _id index
-  Future<Map<String, dynamic>> removeIndex({String name, WriteConcern writeConcern}) {
+  Future<Response> removeIndex({String name, WriteConcern writeConcern}) {
     return db.removeIndex(collectionName, name: name, writeConcern: writeConcern);
   }
 
