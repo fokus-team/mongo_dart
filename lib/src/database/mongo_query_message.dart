@@ -2,18 +2,19 @@ part of mongo_dart;
 
 class MongoQueryMessage extends MongoMessage {
   static final OPTS_NONE = 0;
-  static final OPTS_TAILABLE_CURSOR = 2;
-  static final OPTS_SLAVE = 4;
-  static final OPTS_OPLOG_REPLY = 8;
-  static final OPTS_NO_CURSOR_TIMEOUT = 16;
-  static final OPTS_AWAIT_DATA = 32;
-  static final OPTS_EXHAUST = 64;
-  static final OPTS_PARTIAL = 128;
+  static final OPTS_TAILABLE_CURSOR = 1 << 1;
+  static final OPTS_SLAVE = 1 << 2;
+  static final OPTS_OPLOG_REPLY = 1 << 3;
+  static final OPTS_NO_CURSOR_TIMEOUT = 1 << 4;
+  static final OPTS_AWAIT_DATA = 1 << 5;
+  static final OPTS_EXHAUST = 1 << 6;
+  static final OPTS_PARTIAL = 1 << 7;
 
-  BsonCString _collectionFullName;
   int flags;
   int numberToSkip;
   int numberToReturn;
+  bool isFindQuery;
+  bool fromQuerySelector;
   BsonMap _query;
   BsonMap _fields;
   BsonCString get collectionNameBson => _collectionFullName;
@@ -24,13 +25,59 @@ class MongoQueryMessage extends MongoMessage {
       this.numberToSkip,
       this.numberToReturn,
       Map<String, dynamic> query,
-      Map<String, dynamic> fields) {
+      Map<String, dynamic> fields,
+      {this.isFindQuery = false, this.fromQuerySelector = true}) {
     _collectionFullName = BsonCString(collectionFullName);
     _query = BsonMap(query);
     if (fields != null) {
       _fields = BsonMap(fields);
     }
     opcode = MongoMessage.Query;
+  }
+
+  @override
+  List<Section> toCommand() {
+    Map<String, dynamic> command = {};
+    if (isFindQuery) {
+      _writeFindCommand(command);
+      _writeFindFlags(command);
+    } else if (fromQuerySelector)
+      command.addAll(_query.data[r'$query'] as Map<String, dynamic>);
+    else
+      command.addAll(_query.data);
+    return _asSimpleCommand(command);
+  }
+
+  void _writeFindCommand(Map<String, dynamic> command) {
+    command['find'] = _collectionName();
+    if (fromQuerySelector) {
+      if (_query.data.containsKey(r'$query'))
+        command['filter'] = _query.data[r'$query'];
+      if (_query.data.containsKey(r'$orderby'))
+        command['sort'] = _query.data[r'$orderby'];
+      if (_query.data.containsKey(r'$hint'))
+        command['hint'] = _query.data[r'$hint'];
+    } else
+      command['filter'] = _query.data;
+    if (numberToReturn > 0)
+      command['limit'] = numberToReturn;
+    if (numberToSkip > 0)
+      command['skip'] = numberToSkip;
+    if (_fields != null)
+      command['projection'] = _fields;
+  }
+
+  void _writeFindFlags(Map<String, dynamic> command) {
+    if (flags & OPTS_TAILABLE_CURSOR > 0)
+      command['tailable'] = true;
+    if (flags & OPTS_OPLOG_REPLY > 0)
+      command['oplogReplay'] = true;
+    if (flags & OPTS_NO_CURSOR_TIMEOUT > 0)
+      command['noCursorTimeout'] = true;
+    if (flags & OPTS_AWAIT_DATA > 0)
+      command['awaitData'] = true;
+    if (flags & OPTS_PARTIAL > 0)
+      command['allowPartialResults'] = true;
   }
 
   int get messageLength {

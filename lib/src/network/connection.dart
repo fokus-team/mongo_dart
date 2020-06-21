@@ -6,7 +6,8 @@ class _ServerCapabilities {
   bool writeCommands = false;
   bool authCommands = false;
   bool listCollections = false;
-  bool listIndexes = false;
+  bool indexesCommands = false;
+  bool opMsg = false;
   int maxNumberOfDocsInBatch = 1000;
 
   getParamsFromIstMaster(Map<String, dynamic> isMaster) {
@@ -22,7 +23,10 @@ class _ServerCapabilities {
     }
     if (maxWireVersion >= 3) {
       listCollections = true;
-      listIndexes = true;
+      indexesCommands = true;
+    }
+    if (maxWireVersion >= 6) {
+      opMsg = true;
     }
   }
 }

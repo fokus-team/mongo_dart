@@ -1,18 +1,30 @@
 part of mongo_dart;
 
 class MongoInsertMessage extends MongoMessage {
-  BsonCString _collectionFullName;
   int flags;
   List<BsonMap> _documents;
+  WriteConcern writeConcern;
+
   MongoInsertMessage(
       String collectionFullName, List<Map<String, dynamic>> documents,
-      [this.flags = 0]) {
+      {this.flags = 0, this.writeConcern}) {
     _collectionFullName = BsonCString(collectionFullName);
     _documents = List();
     for (var document in documents) {
       _documents.add(BsonMap(document));
     }
     opcode = MongoMessage.Insert;
+  }
+
+  @override
+  List<Section> toCommand() {
+    Map<String, dynamic> command = {'insert': _collectionName()};
+    if (writeConcern != null)
+      command['writeConcern'] = writeConcern.toCommand;
+    return [
+      MainSection(BsonMap(command)),
+      PayloadSection('documents', _documents)
+    ];
   }
 
   int get messageLength {
@@ -38,8 +50,8 @@ class MongoInsertMessage extends MongoMessage {
 
   String toString() {
     if (_documents.length == 1) {
-      return "MongoInserMessage($requestId, ${_collectionFullName.value}, ${_documents[0].value})";
+      return "MongoInsertMessage($requestId, ${_collectionFullName.value}, ${_documents[0].value})";
     }
-    return "MongoInserMessage($requestId, ${_collectionFullName.value}, ${_documents.length} documents)";
+    return "MongoInsertMessage($requestId, ${_collectionFullName.value}, ${_documents.length} documents)";
   }
 }

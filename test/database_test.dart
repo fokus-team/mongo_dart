@@ -614,7 +614,7 @@ Future testUpdateWithMultiUpdate() async {
   String collectionName = getRandomCollectionName();
   var collection = db.collection(collectionName);
 
-  var result = await collection.insertAll([
+  Response result = await collection.insertAll([
     {'key': 'a', 'value': 'initial_value1'},
     {'key': 'a', 'value': 'initial_value2'},
     {'key': 'b', 'value': 'initial_value_b'}
@@ -711,7 +711,7 @@ testCursorCreation() {
 
 Future testPingRaw() async {
   DbCollection collection = db.collection('\$cmd');
-  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1));
+  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1), isFindQuery: false);
   MongoQueryMessage queryMessage = cursor.generateQueryMessage();
 
   var result = await db.queryMessage(queryMessage);
@@ -721,7 +721,7 @@ Future testPingRaw() async {
 
 Future testNextObject() async {
   DbCollection collection = db.collection('\$cmd');
-  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1));
+  Cursor cursor = Cursor(db, collection, where.eq('ping', 1).limit(1), isFindQuery: false);
 
   var newCursor = await cursor.nextObject();
 
@@ -756,7 +756,8 @@ Future testCursorWithOpenServerCursor() async {
   var collection = db.collection(collectionName);
 
   await insertManyDocuments(collection, 1000);
-  var cursor = Cursor(db, collection, where.limit(10));
+  // Default batch size for find command is 101
+  var cursor = Cursor(db, collection, where.limit(110));
 
   await cursor.nextObject();
 
@@ -906,8 +907,17 @@ Future testIndexCreation() async {
   var indexes = await collection.getIndexes();
   expect(indexes.length, 4);
 
-  res = (await db.ensureIndex(collectionName, keys: {'a': -1, 'embedded.c': 1}))
-      as Map<String, dynamic>;
+  res = await db.ensureIndex(collectionName, keys: {'a': -1, 'embedded.c': 1});
+  expect(res['ok'], 1.0);
+}
+
+Future testIndexRemoval() async {
+  String collectionName = getRandomCollectionName();
+  var collection = db.collection(collectionName);
+
+  var res = await db.createIndex(collectionName, key: 'a', name: 'a');
+  expect(res['ok'], 1.0);
+  res = await collection.removeIndex(name: 'a');
   expect(res['ok'], 1.0);
 }
 
@@ -1114,17 +1124,17 @@ Future testFieldLevelUpdateSimple() async {
   var result = await collection.insert({'name': 'a', 'value': 10});
   expect(result['n'], 0);
 
-  result = await collection.findOne({'name': 'a'});
-  expect(result, isNotNull);
+  var findResult = await collection.findOne({'name': 'a'});
+  expect(findResult, isNotNull);
 
-  id = result['_id'] as ObjectId;
+  id = findResult['_id'] as ObjectId;
   result = await collection.update(where.id(id), modify.set('name', 'BBB'));
   expect(result['updatedExisting'], true);
   expect(result['n'], 1);
 
-  result = await collection.findOne(where.id(id));
-  expect(result, isNotNull);
-  expect(result['name'], 'BBB');
+  findResult = await collection.findOne(where.id(id));
+  expect(findResult, isNotNull);
+  expect(findResult['name'], 'BBB');
 }
 
 Future testQueryOnClosedConnection() async {
@@ -1237,7 +1247,7 @@ Future testFindOneWhileStateIsOpening() {
 main() {
   Future initializeDatabase() async {
     db = Db(DefaultUri);
-    await db.open();
+    await db.open(useLegacyErrorChecking: true);
   }
 
   Future cleanupDatabase() async {
@@ -1315,6 +1325,7 @@ main() {
     group('Indexes tests:', () {
       test('testGetIndexes', testGetIndexes);
       test('testIndexCreation', testIndexCreation);
+      test('testIndexRemoval', testIndexRemoval);
       test(
           'testEnsureIndexWithIndexCreation', testEnsureIndexWithIndexCreation);
       test('testIndexCreationErrorHandling', testIndexCreationErrorHandling);
