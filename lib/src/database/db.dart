@@ -58,21 +58,25 @@ class WriteConcern {
       WriteConcern(w: "majority", wtimeout: 0, fsync: false, j: false);
 
   /// Gets the getlasterror command for this write concern.
-  Map<String, dynamic> get command {
+  Map<String, dynamic> get lastErrorCommand {
     var map = Map<String, dynamic>();
     map["getlasterror"] = 1;
-    if (w != null) {
-      map["w"] = w;
-    }
-    if (wtimeout != null) {
-      map["wtimeout"] = wtimeout;
-    }
+    map = _writeFields(map);
     if (fsync != null) {
       map["fsync"] = fsync;
     }
-    if (j != null) {
+    return map;
+  }
+
+  Map<String, dynamic> get toCommand => _writeFields({});
+
+  Map<String, dynamic> _writeFields(Map<String, dynamic> map) {
+    if (w != null)
+      map["w"] = w;
+    if (wtimeout != null)
+      map["wtimeout"] = wtimeout;
+    if (j != null)
       map["j"] = j;
-    }
     return map;
   }
 }
@@ -92,11 +96,14 @@ class Db {
   String _debugInfo;
   Db authSourceDb;
   _ConnectionManager _connectionManager;
+
   _Connection get _masterConnection => _connectionManager.masterConnection;
+
   _Connection get _masterConnectionVerified =>
       _connectionManager.masterConnectionVerified;
   WriteConcern _writeConcern;
   AuthenticationScheme _authenticationScheme;
+  bool useLegacyErrorChecking;
 
   String toString() => 'Db($databaseName,$_debugInfo)';
 
@@ -105,6 +112,7 @@ class Db {
   ///     var db = new Db('mongodb://127.0.0.1/testdb');
   /// And that code direct to MongoLab server on 37637 port, database *testdb*, username *dart*, password *test*
   ///     var db = new Db('mongodb://dart:test@ds037637-a.mongolab.com:37637/objectory_blog');
+
   Db(String uriString, [this._debugInfo]) {
     _uriList.add(uriString);
   }
@@ -112,7 +120,9 @@ class Db {
   Db.pool(List<String> uriList, [this._debugInfo]) {
     _uriList.addAll(uriList);
   }
+
   Db._authDb(this.databaseName);
+
   ServerConfig _parseUri(String uriString) {
     var uri = Uri.parse(uriString);
 
@@ -182,7 +192,7 @@ class Db {
         connection = _masterConnectionVerified;
       }
 
-      return connection.query(queryMessage);
+      return connection.query(_getMessageToSend(queryMessage));
     });
   }
 
@@ -200,10 +210,28 @@ class Db {
       writeConcern = _writeConcern;
     }
 
-    connection.execute(message, writeConcern == WriteConcern.ERRORS_IGNORED);
+    connection.execute(_getMessageToSend(message), writeConcern == WriteConcern.ERRORS_IGNORED);
   }
 
-  Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED, TimeoutConfig timeoutConfig}) {
+  Future<Response> executeWithAcknowledgement(MongoMessage message, [WriteConcern writeConcern]) {
+    if (writeConcern == null)
+      writeConcern = _writeConcern;
+
+    if (writeConcern == WriteConcern.ERRORS_IGNORED) {
+      executeMessage(message, writeConcern);
+      return Future.value(Response(success: true));
+    }
+    if (!useLegacyErrorChecking && _masterConnection.serverCapabilities.opMsg)
+      return queryMessage(message).then((response) => _parseCommandResponse(response, (doc) => Response.fromCommand(doc)));
+    executeMessage(message, writeConcern);
+    return getLastError(writeConcern);
+  }
+
+  /// ## [useLegacyErrorChecking]
+  /// when calling newer commands like insert, update and delete that return their result with errors rely on the legacy getLastError command as a response
+  Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED,
+	  bool useLegacyErrorChecking = false, bool secure = false, TimeoutConfig timeoutConfig}) {
+    this.useLegacyErrorChecking = useLegacyErrorChecking;
     return Future.sync(() {
       if (state == State.OPENING) {
         throw MongoDartError('Attempt to open db in state $state');
@@ -214,45 +242,39 @@ class Db {
       _connectionManager = _ConnectionManager(this, timeoutConfig: timeoutConfig);
 
       _uriList.forEach((uri) {
-        _connectionManager.addConnection(_parseUri(uri));
+        _connectionManager.addConnection(_parseUri(uri)..isSecure = secure);
       });
 
       return _connectionManager.open(writeConcern);
     });
   }
 
-  Future<Map<String, dynamic>> executeDbCommand(MongoMessage message,
+  Future<Response> executeDbCommand(MongoMessage message,
       {_Connection connection}) async {
     if (connection == null) {
       connection = _masterConnectionVerified;
     }
+    var replyMessage = await connection.query(_getMessageToSend(message));
+    return _parseCommandResponse(replyMessage, (doc) => Response.fromMessage(doc));
+  }
 
-    Completer<Map<String, dynamic>> result = Completer();
-
-    var replyMessage = await connection.query(message);
-    var firstRepliedDocument = replyMessage.documents[0];
-    var errorMessage = "";
+  Future<Response> _parseCommandResponse(MongoReplyMessage replyMessage, Response Function(Map<String, dynamic>) getResponse) {
+    Completer<Response> result = Completer();
 
     if (replyMessage.documents.isEmpty) {
-      errorMessage =
-          "Error executing Db command, documents are empty $replyMessage";
-
+      var errorMessage = "Error executing command, documents are empty $replyMessage";
       print("Error: $errorMessage");
 
-      var m = Map<String, dynamic>();
-      m["errmsg"] = errorMessage;
-
-      result.completeError(m);
-    } else if (documentIsNotAnError(firstRepliedDocument)) {
-      result.complete(firstRepliedDocument);
+      result.completeError(Response.fromError(RequestError(errorMessage)));
     } else {
-      result.completeError(firstRepliedDocument);
+      var response = getResponse(replyMessage.documents[0]);
+      if (response.errors.isEmpty)
+        result.complete(response);
+      else
+        result.completeError(response.errors[0]);
     }
     return result.future;
   }
-
-  bool documentIsNotAnError(firstRepliedDocument) =>
-      firstRepliedDocument['ok'] == 1.0 && firstRepliedDocument['err'] == null;
 
   Future<bool> dropCollection(String collectionName) async {
     var collectionInfos = await getCollectionInfos({'name': collectionName});
@@ -271,17 +293,12 @@ class Db {
     return executeDbCommand(DbCommand.createDropDatabaseCommand(this));
   }
 
-  Future<Map<String, dynamic>> removeFromCollection(String collectionName,
+  Future<Response> removeFromCollection(String collectionName,
       [Map<String, dynamic> selector = const {}, WriteConcern writeConcern]) {
-    return Future.sync(() {
-      executeMessage(
-          MongoRemoveMessage("$databaseName.$collectionName", selector),
-          writeConcern);
-      return _getAcknowledgement(writeConcern: writeConcern);
-    });
+    return executeWithAcknowledgement(MongoRemoveMessage("$databaseName.$collectionName", selector, writeConcern), writeConcern);
   }
 
-  Future<Map<String, dynamic>> getLastError([WriteConcern writeConcern]) {
+  Future<Response> getLastError([WriteConcern writeConcern]) {
     if (writeConcern == null) {
       writeConcern = _writeConcern;
     }
@@ -289,22 +306,22 @@ class Db {
         DbCommand.createGetLastErrorCommand(this, writeConcern));
   }
 
-  Future<Map<String, dynamic>> getNonce({_Connection connection}) {
+  Future<Response> getNonce({_Connection connection}) {
     return executeDbCommand(DbCommand.createGetNonceCommand(this),
         connection: connection);
   }
 
-  Future<Map<String, dynamic>> getBuildInfo({_Connection connection}) {
+  Future<Response> getBuildInfo({_Connection connection}) {
     return executeDbCommand(DbCommand.createBuildInfoCommand(this),
         connection: connection);
   }
 
-  Future<Map<String, dynamic>> isMaster({_Connection connection}) {
+  Future<Response> isMaster({_Connection connection}) {
     return executeDbCommand(DbCommand.createIsMasterCommand(this),
         connection: connection);
   }
 
-  Future<Map<String, dynamic>> wait() {
+  Future<Response> wait() {
     return getLastError();
   }
 
@@ -328,6 +345,13 @@ class Db {
     }
 
     return result;
+  }
+
+  MongoMessage _getMessageToSend(MongoMessage message) {
+    // OP_MSG can be used only after completed handshake
+    if (_masterConnection.serverCapabilities.opMsg && state != State.INIT && state != State.OPENING)
+      message = MongoOpMessage.fromMessage(message);
+    return message;
   }
 
   Stream<Map<String, dynamic>> _listCollectionsCursor(
@@ -435,45 +459,63 @@ class Db {
     return name;
   }
 
-  Future<Map<String, dynamic>> createIndex(String collectionName,
-      {String key,
-      Map<String, dynamic> keys,
-      bool unique,
-      bool sparse,
-      bool background,
-      bool dropDups,
+  Future<Response> createIndex(String collectionName,
+      {String key, Map<String, dynamic> keys,
+      bool unique, bool sparse, bool background, bool dropDups,
       Map<String, dynamic> partialFilterExpression,
-      String name}) {
+      String name, WriteConcern writeConcern}) {
     return Future.sync(() async {
       var selector = <String, dynamic>{};
-      selector['ns'] = '$databaseName.$collectionName';
       keys = _setKeys(key, keys);
       selector['key'] = keys;
-
-      if (unique == true) {
-        selector['unique'] = true;
-      } else {
-        selector['unique'] = false;
+      if (name == null) {
+        name = _createIndexName(keys);
       }
+      selector['name'] = name;
+      selector['unique'] = unique;
       if (sparse == true) {
         selector['sparse'] = true;
       }
       if (background == true) {
         selector['background'] = true;
       }
-      if (dropDups == true) {
-        selector['dropDups'] = true;
-      }
       if (partialFilterExpression != null) {
         selector['partialFilterExpression'] = partialFilterExpression;
       }
-      if (name == null) {
-        name = _createIndexName(keys);
+      MongoMessage message;
+      if (_masterConnection.serverCapabilities.indexesCommands) {
+        var command = {
+          'createIndexes': collectionName,
+          'indexes': [selector]
+        };
+        if (writeConcern != null)
+          command['writeConcern'] = writeConcern.toCommand;
+        message = DbCommand.createIndexCommand(this, collectionName, command);
+      } else {
+        selector['ns'] = '$databaseName.$collectionName';
+        if (dropDups == true) {
+          selector['dropDups'] = true;
+        }
+        message = MongoInsertMessage(
+            '$databaseName.${DbCommand.SYSTEM_INDEX_COLLECTION}', [selector]);
       }
-      selector['name'] = name;
-      MongoInsertMessage insertMessage = MongoInsertMessage(
-          '$databaseName.${DbCommand.SYSTEM_INDEX_COLLECTION}', [selector]);
-      await executeMessage(insertMessage, _writeConcern);
+      await executeMessage(message, _writeConcern);
+      return getLastError();
+    });
+  }
+
+  /// Removes indexes from collection
+  /// ##[name]
+  /// Name of the index to remove, specify * to remove all but the default _id index
+  Future<Response> removeIndex(String collectionName, {String name, WriteConcern writeConcern}) {
+    Map<String, dynamic> command = {
+      'dropIndexes': collectionName,
+      'index': name
+    };
+    if (writeConcern != null)
+      command['writeConcern'] = writeConcern.toCommand;
+    return Future.sync(() {
+      executeMessage(DbCommand.createIndexCommand(this, collectionName, command), writeConcern);
       return getLastError();
     });
   }
@@ -495,7 +537,7 @@ class Db {
     return keys;
   }
 
-  Future ensureIndex(String collectionName,
+  Future<Response> ensureIndex(String collectionName,
       {String key,
       Map<String, dynamic> keys,
       bool unique,
@@ -512,7 +554,7 @@ class Db {
     }
 
     if (indexInfos.any((info) => info['name'] == name)) {
-      return {'ok': 1.0, 'result': 'index preexists'};
+      return Response(success: true);
     }
 
     var createdIndex = await createIndex(collectionName,
@@ -525,18 +567,5 @@ class Db {
         name: name);
 
     return createdIndex;
-  }
-
-  Future<Map<String, dynamic>> _getAcknowledgement(
-      {WriteConcern writeConcern}) {
-    if (writeConcern == null) {
-      writeConcern = _writeConcern;
-    }
-
-    if (writeConcern == WriteConcern.ERRORS_IGNORED) {
-      return Future.value({'ok': 1.0});
-    } else {
-      return getLastError(writeConcern);
-    }
   }
 }

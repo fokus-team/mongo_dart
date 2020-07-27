@@ -35,7 +35,7 @@ abstract class SaslAuthenticator extends Authenticator {
         db.authSourceDb ?? db, mechanism.name, currentStep.bytesToSendToServer);
 
     while (true) {
-      Map<String, dynamic> result;
+      Response result;
 
       result = await db.executeDbCommand(command, connection: connection);
 
@@ -43,9 +43,9 @@ abstract class SaslAuthenticator extends Authenticator {
         break;
       }
 
-      var payload = result['payload'];
+      var payload = result['payload'] as BsonBinary;
 
-      var payloadAsBytes = base64.decode(payload.toString());
+      var payloadAsBytes = payload.byteList;
 
       currentStep = currentStep.transition(conversation, payloadAsBytes);
 

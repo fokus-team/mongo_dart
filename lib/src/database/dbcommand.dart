@@ -22,6 +22,9 @@ class DbCommand extends MongoQueryMessage {
     _collectionFullName = BsonCString("${db.databaseName}.$collectionName");
   }
 
+  @override
+  List<Section> toCommand() => _asSimpleCommand(_query.data);
+
   static DbCommand createFindAndModifyCommand(Db db, String collectionName,
       {Map<String, dynamic> query,
       Map<String, dynamic> sort,
@@ -113,7 +116,7 @@ class DbCommand extends MongoQueryMessage {
   }
 
   static DbCommand createGetLastErrorCommand(Db db, WriteConcern concern) {
-    return createQueryDbCommand(db, concern.command);
+    return createQueryDbCommand(db, concern.lastErrorCommand);
   }
 
   static DbCommand createCountCommand(Db db, String collectionName,
@@ -130,7 +133,7 @@ class DbCommand extends MongoQueryMessage {
     var command = {
       'saslStart': 1,
       'mechanism': mechanismName,
-      'payload': base64.encode(bytesToSendToServer)
+      'payload': BsonBinary.from(bytesToSendToServer)
     };
 
     return DbCommand(db, SYSTEM_COMMAND_COLLECTION, MongoQueryMessage.OPTS_NONE,
@@ -142,7 +145,7 @@ class DbCommand extends MongoQueryMessage {
     var command = {
       'saslContinue': 1,
       'conversationId': conversationId,
-      'payload': base64.encode(bytesToSendToServer)
+      'payload': BsonBinary.from(bytesToSendToServer)
     };
 
     return DbCommand(db, SYSTEM_COMMAND_COLLECTION, MongoQueryMessage.OPTS_NONE,
@@ -179,5 +182,16 @@ class DbCommand extends MongoQueryMessage {
 
   static DbCommand createIsMasterCommand(Db db) {
     return createQueryDbCommand(db, {'ismaster': 1});
+  }
+
+  static DbCommand createIndexCommand(Db db, String collectionName, Map<String, dynamic> command) {
+    return DbCommand(
+        db,
+        collectionName,
+        MongoQueryMessage.OPTS_NO_CURSOR_TIMEOUT,
+        0,
+        -1,
+        command,
+        null);
   }
 }

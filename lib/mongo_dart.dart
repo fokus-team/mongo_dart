@@ -7,7 +7,7 @@ library mongo_dart;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert' show base64, utf8;
-import 'dart:io' show File, FileMode, IOSink, Socket;
+import 'dart:io' show File, FileMode, IOSink, SecureSocket, Socket;
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:collection/collection.dart';
@@ -41,6 +41,8 @@ part 'src/database/dbcommand.dart';
 
 part 'src/database/error.dart';
 
+part 'src/database/mongo_op_message.dart';
+
 part 'src/database/mongo_getmore_message.dart';
 
 part 'src/database/mongo_insert_message.dart';
@@ -62,6 +64,10 @@ part 'src/database/server_config.dart';
 part 'src/database/timeout_config.dart';
 
 part 'src/database/state.dart';
+
+part 'src/database/response.dart';
+
+part 'src/database/command_section.dart';
 
 part 'src/gridfs/grid_file.dart';
 

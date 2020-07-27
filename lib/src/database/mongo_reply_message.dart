@@ -2,12 +2,11 @@ part of mongo_dart;
 
 class MongoReplyMessage extends MongoMessage {
   static final FLAGS_CURSOR_NONE = 0;
-  static final FLAGS_CURSOR_NOT_FOUND = 1;
-  static final FLAGS_QUERY_FAILURE = 2;
-  static final FLAGS_SHARD_CONFIGSTALE = 4;
-  static final FLAGS_AWAIT_CAPABLE = 8;
+  static final FLAGS_CURSOR_NOT_FOUND = 1 << 0;
+  static final FLAGS_QUERY_FAILURE = 1 << 1;
+  static final FLAGS_SHARD_CONFIGSTALE = 1 << 2;
+  static final FLAGS_AWAIT_CAPABLE = 1 << 3;
 
-  BsonCString _collectionFullName;
   int responseFlags;
   int cursorId = -1; // 64bit integer
   int startingFrom;

@@ -6,7 +6,8 @@ class _ServerCapabilities {
   bool writeCommands = false;
   bool authCommands = false;
   bool listCollections = false;
-  bool listIndexes = false;
+  bool indexesCommands = false;
+  bool opMsg = false;
   int maxNumberOfDocsInBatch = 1000;
 
   getParamsFromIstMaster(Map<String, dynamic> isMaster) {
@@ -22,7 +23,10 @@ class _ServerCapabilities {
     }
     if (maxWireVersion >= 3) {
       listCollections = true;
-      listIndexes = true;
+      indexesCommands = true;
+    }
+    if (maxWireVersion >= 6) {
+      opMsg = true;
     }
   }
 }
@@ -52,12 +56,16 @@ class _Connection {
   }
 
   Future<bool> connect() {
-    Completer<bool> completer = Completer();
-    Socket.connect(
-	    serverConfig.host,
-	    serverConfig.port,
-	    timeout: _manager.timeoutConfig.connectionTimeout > 0 ? Duration(milliseconds: _manager.timeoutConfig.connectionTimeout) : null
-    ).then((Socket _socket) {
+    Completer<bool> completer = new Completer();
+    Future<Socket> _socketConnection;
+    Duration timeout = _manager.timeoutConfig.connectionTimeout > 0 ? Duration(milliseconds: _manager.timeoutConfig.connectionTimeout) : null;
+    if (!serverConfig.isSecure){
+      _socketConnection = Socket.connect(serverConfig.host, serverConfig.port, timeout: timeout);
+    }
+    else {
+      _socketConnection = SecureSocket.connect(serverConfig.host, serverConfig.port, timeout: timeout);
+    }
+    _socketConnection.then((Socket _socket) {
       // Socket connected.
       socket = _socket;
       Stream<List<int>> socketStream = socket;
