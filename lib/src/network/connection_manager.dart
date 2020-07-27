@@ -8,7 +8,10 @@ class _ConnectionManager {
   final sendQueue = Queue<MongoMessage>();
   _Connection _masterConnection;
 
-  _ConnectionManager(this.db);
+  int connectionTimeoutMs = 0;
+  int socketTimeoutMs = 0;
+
+  _ConnectionManager(this.db, {this.connectionTimeoutMs, this.socketTimeoutMs});
   _Connection get masterConnection => _masterConnection;
 
   _Connection get masterConnectionVerified {

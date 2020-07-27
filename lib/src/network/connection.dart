@@ -53,24 +53,32 @@ class _Connection {
 
   Future<bool> connect() {
     Completer<bool> completer = Completer();
-    Socket.connect(serverConfig.host, serverConfig.port).then((Socket _socket) {
+    Socket.connect(
+	    serverConfig.host,
+	    serverConfig.port,
+	    timeout: _manager.connectionTimeoutMs > 0 ? Duration(milliseconds: _manager.connectionTimeoutMs) : null
+    ).then((Socket _socket) {
       // Socket connected.
       socket = _socket;
+      Stream<List<int>> socketStream = socket;
+      if (_manager.socketTimeoutMs > 0)
+      	socketStream = socket.timeout(Duration(milliseconds: _manager.socketTimeoutMs));
       _repliesSubscription =
-          MongoMessageHandler().transformer.bind(socket).listen(_receiveReply,
-              onError: (e, st) {
-                _log.severe("Socket error ${e} ${st}");
-                //completer.completeError(e);
-                if (!_closed) {
-                  _onSocketError();
-                }
-              },
-              cancelOnError: true,
-              onDone: () {
-                if (!_closed) {
-                  _onSocketError();
-                }
-              });
+        MongoMessageHandler().transformer.bind(socketStream).listen(_receiveReply,
+          onError: (e, st) {
+            _log.severe("Socket error ${e} ${st}");
+            //completer.completeError(e);
+            if (!_closed) {
+              _onSocketError();
+            }
+          },
+          cancelOnError: true,
+          onDone: () {
+            if (!_closed) {
+              _onSocketError();
+            }
+          }
+        );
       connected = true;
       completer.complete(true);
     }).catchError((err) {

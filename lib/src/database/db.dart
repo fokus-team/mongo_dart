@@ -203,7 +203,7 @@ class Db {
     connection.execute(message, writeConcern == WriteConcern.ERRORS_IGNORED);
   }
 
-  Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED}) {
+  Future open({WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED, int connectionTimeoutMs = 0, int socketTimeoutMs = 0}) {
     return Future.sync(() {
       if (state == State.OPENING) {
         throw MongoDartError('Attempt to open db in state $state');
@@ -211,7 +211,11 @@ class Db {
 
       state = State.OPENING;
       _writeConcern = writeConcern;
-      _connectionManager = _ConnectionManager(this);
+      _connectionManager = _ConnectionManager(
+	      this,
+	      connectionTimeoutMs: connectionTimeoutMs,
+	      socketTimeoutMs: socketTimeoutMs
+      );
 
       _uriList.forEach((uri) {
         _connectionManager.addConnection(_parseUri(uri));
