@@ -56,13 +56,20 @@ class _Connection {
     Socket.connect(
 	    serverConfig.host,
 	    serverConfig.port,
-	    timeout: _manager.connectionTimeoutMs > 0 ? Duration(milliseconds: _manager.connectionTimeoutMs) : null
+	    timeout: _manager.timeoutConfig.connectionTimeout > 0 ? Duration(milliseconds: _manager.timeoutConfig.connectionTimeout) : null
     ).then((Socket _socket) {
       // Socket connected.
       socket = _socket;
+      Stream<List<int>> socketStream = socket;
+      if (_manager.timeoutConfig.keepAliveTime > 0)
+				socketStream = socket.timeout(Duration(milliseconds: _manager.timeoutConfig.keepAliveTime));
       _repliesSubscription =
-        MongoMessageHandler().transformer.bind(socket).listen(_receiveReply,
+        MongoMessageHandler().transformer.bind(socketStream).listen(_receiveReply,
           onError: (e, st) {
+        	  if (e is TimeoutException && _manager.timeoutConfig.keepAliveTime > 0) {
+        	  	_manager.db.close();
+        	  	return;
+	          }
             _log.severe("Socket error ${e} ${st}");
             //completer.completeError(e);
             if (!_closed) {
@@ -112,8 +119,8 @@ class _Connection {
           "Invalid state: Connection already closed."));
     }
     var future = completer.future;
-    if (_manager.socketTimeoutMs > 0)
-    	future = future.timeout(Duration(milliseconds: _manager.socketTimeoutMs));
+    if (_manager.timeoutConfig.socketTimeout > 0)
+    	future = future.timeout(Duration(milliseconds: _manager.timeoutConfig.socketTimeout));
     return future;
   }
 

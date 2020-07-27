@@ -59,6 +59,8 @@ part 'src/database/mongo_update_message.dart';
 
 part 'src/database/server_config.dart';
 
+part 'src/database/timeout_config.dart';
+
 part 'src/database/state.dart';
 
 part 'src/gridfs/grid_file.dart';
