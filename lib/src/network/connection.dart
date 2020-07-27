@@ -68,7 +68,7 @@ class _Connection {
     _socketConnection.then((Socket _socket) {
       // Socket connected.
       socket = _socket;
-      Stream<List<int>> socketStream = socket;
+      Stream<Uint8List> socketStream = socket;
       if (_manager.timeoutConfig.keepAliveTime > 0)
 				socketStream = socket.timeout(Duration(milliseconds: _manager.timeoutConfig.keepAliveTime));
       _repliesSubscription =
