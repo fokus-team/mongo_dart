@@ -60,11 +60,8 @@ class _Connection {
     ).then((Socket _socket) {
       // Socket connected.
       socket = _socket;
-      Stream<List<int>> socketStream = socket;
-      if (_manager.socketTimeoutMs > 0)
-      	socketStream = socket.timeout(Duration(milliseconds: _manager.socketTimeoutMs));
       _repliesSubscription =
-        MongoMessageHandler().transformer.bind(socketStream).listen(_receiveReply,
+        MongoMessageHandler().transformer.bind(socket).listen(_receiveReply,
           onError: (e, st) {
             _log.severe("Socket error ${e} ${st}");
             //completer.completeError(e);
@@ -114,7 +111,10 @@ class _Connection {
       completer.completeError(const ConnectionException(
           "Invalid state: Connection already closed."));
     }
-    return completer.future;
+    var future = completer.future;
+    if (_manager.socketTimeoutMs > 0)
+    	future = future.timeout(Duration(milliseconds: _manager.socketTimeoutMs));
+    return future;
   }
 
   ///   If runImmediately is set to false, the message is joined into one packet with
