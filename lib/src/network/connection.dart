@@ -70,7 +70,7 @@ class _Connection {
       socket = _socket;
       Stream<Uint8List> socketStream = socket;
       if (_manager.timeoutConfig.keepAliveTime > 0)
-				socketStream = socket.timeout(Duration(milliseconds: _manager.timeoutConfig.keepAliveTime));
+				socketStream = socket.timeout(Duration(seconds: _manager.timeoutConfig.keepAliveTime));
       _repliesSubscription =
         MongoMessageHandler().transformer.bind(socketStream).listen(_receiveReply,
           onError: (e, st) {
