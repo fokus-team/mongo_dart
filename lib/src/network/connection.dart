@@ -128,7 +128,7 @@ class _Connection {
     }
     var future = completer.future;
     if (_manager.timeoutConfig.socketTimeout > 0)
-    	future = future.timeout(Duration(milliseconds: _manager.timeoutConfig.socketTimeout));
+    	future = future.timeout(Duration(milliseconds: _manager.timeoutConfig.socketTimeout), onTimeout: () => throw MongoQueryTimeout());
     return future;
   }
 
