@@ -1,7 +1,7 @@
 part of mongo_dart;
 
 class _ConnectionManager {
-  final _log = Logger('ConnectionManager');
+  final _log = Logger('MongoDart.ConnectionManager');
   final Db db;
   final _connectionPool = Map<String, _Connection>();
   final replyCompleters = Map<int, Completer<MongoReplyMessage>>();
