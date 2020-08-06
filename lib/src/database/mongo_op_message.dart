@@ -60,4 +60,7 @@ class MongoOpMessage extends MongoMessage {
     while (buffer.byteList.length - buffer.offset > 4)
       sections.add(PayloadSection.fromBuffer(buffer));
   }
+
+  @override
+  String toString() => 'MongoOpMessage{${sections.length} sections, flags: $flags}';
 }
