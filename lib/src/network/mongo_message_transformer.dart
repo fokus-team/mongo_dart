@@ -1,7 +1,7 @@
 part of mongo_dart;
 
 class MongoMessageHandler {
-  final _log = Logger('MongoMessageTransformer');
+  final _log = Logger('MongoDart.MongoMessageTransformer');
   final converter = PacketConverter();
 
   void handleData(List<int> data, EventSink<MongoReplyMessage> sink) {

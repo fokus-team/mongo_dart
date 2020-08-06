@@ -3,7 +3,7 @@ part of mongo_dart;
 typedef MonadicBlock = void Function(Map<String, dynamic> value);
 
 class Cursor {
-  final _log = Logger('Cursor');
+  final _log = Logger('MongoDart.Cursor');
   State state = State.INIT;
   int cursorId = 0;
   Db db;

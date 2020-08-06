@@ -32,7 +32,7 @@ class _ServerCapabilities {
 }
 
 class _Connection {
-  final Logger _log = Logger('Connection');
+  final Logger _log = Logger('MongoDart.Connection');
   _ConnectionManager _manager;
   ServerConfig serverConfig;
   Socket socket;
