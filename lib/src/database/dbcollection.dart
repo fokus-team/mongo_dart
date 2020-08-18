@@ -1,6 +1,7 @@
 part of mongo_dart;
 
 class DbCollection {
+	final Logger _log = Logger('MongoDart.DbCollection');
   Db db;
   String collectionName;
 
@@ -30,12 +31,39 @@ class DbCollection {
   }
 
   Future<Response> insertAll(List<Map<String, dynamic>> documents,
-      {WriteConcern writeConcern}) {
-    return Future.sync(() {
-      MongoInsertMessage insertMessage =
-          MongoInsertMessage(fullName(), documents, writeConcern: writeConcern);
-      return db.executeWithAcknowledgement(insertMessage, writeConcern);
-    });
+		  {WriteConcern writeConcern}) {
+	  return Future.sync(() {
+		  MongoInsertMessage insertMessage =
+		  MongoInsertMessage(fullName(), documents, writeConcern: writeConcern);
+		  return db.executeWithAcknowledgement(insertMessage, writeConcern);
+	  });
+  }
+
+  /// Updates multiple documents at once, supported from version 3.6 up
+	/// The number of selectors and documents to update must be the same
+  Future<Response> updateAll(List<dynamic> selectors, List<Map<String, dynamic>> documents,
+		  {bool upsert = false,
+			  bool multiUpdate = false,
+			  WriteConcern writeConcern}) {
+	  if (!db._masterConnection.serverCapabilities.opMsg) {
+		  _log.warning('updateAll method is not supported on you MongoDB version (${db._masterConnection.serverCapabilities.maxWireVersion})');
+		  return null;
+	  }
+	  if (documents.length != selectors.length) {
+		  _log.warning('The number of selectors and documents to update must be the same');
+		  return null;
+	  }
+	  int flags = 0;
+	  if (upsert) {
+		  flags |= 0x1;
+	  }
+	  if (multiUpdate) {
+		  flags |= 0x2;
+	  }
+	  var selectorMaps = selectors.map((selector) => _selectorBuilder2Map(selector)).toList();
+	  MongoUpdateMessage message = MongoUpdateMessage(
+			  fullName(), selectorMaps, documents, flags, writeConcern: writeConcern);
+	  return db.executeWithAcknowledgement(message, writeConcern);
   }
 
   Future<Response> update(selector, document,
@@ -52,7 +80,7 @@ class DbCollection {
       }
 
       MongoUpdateMessage message = MongoUpdateMessage(
-          fullName(), _selectorBuilder2Map(selector), document, flags, writeConcern: writeConcern);
+          fullName(), [_selectorBuilder2Map(selector)], [document], flags, writeConcern: writeConcern);
       return db.executeWithAcknowledgement(message, writeConcern);
     });
   }

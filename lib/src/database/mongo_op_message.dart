@@ -40,7 +40,7 @@ class MongoOpMessage extends MongoMessage {
   }
 
   @override
-  int get messageLength => 16 + 4 + sections.fold<int>(0, (len, sec) => len += sec.byteLength);
+  int get messageLength => 16 + 4 + sections.fold<int>(0, (len, sec) => len + sec.byteLength);
 
   @override
   BsonBinary serialize() {
