@@ -7,18 +7,20 @@ class MongoUpdateMessage extends MongoMessage {
   int flags;
   int numberToSkip;
   int numberToReturn;
-  BsonMap _selector;
-  BsonMap _document;
+  List<BsonMap> _selectors = [];
+  List<BsonMap> _documents = [];
   WriteConcern writeConcern;
 
-  MongoUpdateMessage(String collectionFullName, Map<String, dynamic> selector,
-      document, this.flags, {this.writeConcern}) {
+  MongoUpdateMessage(String collectionFullName, List<Map<String, dynamic>> selectors,
+		  List<dynamic> documents, this.flags, {this.writeConcern}) : assert(selectors.length == documents.length) {
     _collectionFullName = BsonCString(collectionFullName);
-    _selector = BsonMap(selector);
-    if (document is ModifierBuilder) {
-      document = document.map;
+    for (var selector in selectors)
+    	_selectors.add(BsonMap(selector));
+    for (var document in documents) {
+	    if (document is ModifierBuilder)
+		    document = document.map;
+	    _documents.add(BsonMap(document as Map<String, dynamic>));
     }
-    _document = BsonMap(document as Map<String, dynamic>);
     opcode = MongoMessage.Update;
   }
 
@@ -27,24 +29,29 @@ class MongoUpdateMessage extends MongoMessage {
     Map<String, dynamic> command = {'update': _collectionName()};
     if (writeConcern != null)
       command['writeConcern'] = writeConcern.toCommand;
-    Map<String, dynamic> updates = {'q': _selector, 'u': _document};
-    if (flags & OPTS_UPSERT > 0)
-      updates['upsert'] = true;
-    if (flags & OPTS_MULTI_UPDATE > 0)
-      updates['multi'] = true;
+
+    List<BsonMap> payload = [];
+    for (int i = 0; i < _documents.length; i++) {
+	    Map<String, dynamic> update = {'q': _selectors[i], 'u': _documents[i]};
+	    if (flags & OPTS_UPSERT > 0)
+		    update['upsert'] = true;
+	    if (flags & OPTS_MULTI_UPDATE > 0)
+		    update['multi'] = true;
+	    payload.add(BsonMap(update));
+    }
     return [
       MainSection(BsonMap(command)),
-      PayloadSection('updates', [BsonMap(updates)])
+      PayloadSection('updates', payload)
     ];
   }
 
   int get messageLength {
-    return 16 +
-        4 +
-        _collectionFullName.byteLength() +
-        4 +
-        _selector.byteLength() +
-        _document.byteLength();
+    var length = 16 + 4 + _collectionFullName.byteLength() + 4;
+    for (var _doc in _documents)
+	    length += _doc.byteLength();
+    for (var _sel in _selectors)
+	    length += _sel.byteLength();
+    return length;
   }
 
   BsonBinary serialize() {
@@ -53,13 +60,13 @@ class MongoUpdateMessage extends MongoMessage {
     buffer.writeInt(0);
     _collectionFullName.packValue(buffer);
     buffer.writeInt(flags);
-    _selector.packValue(buffer);
-    _document.packValue(buffer);
+    _selectors[0].packValue(buffer);
+    _documents[0].packValue(buffer);
     buffer.offset = 0;
     return buffer;
   }
 
   String toString() {
-    return "MongoUpdateMessage($requestId, ${_collectionFullName.value}, ${_selector.value}, ${_document.value})";
+    return "MongoUpdateMessage($requestId, ${_collectionFullName.value}, ${_documents.length} documents)";
   }
 }
