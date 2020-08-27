@@ -41,7 +41,7 @@ class DbCollection {
 
   /// Updates multiple documents at once, supported from version 3.6 up
 	/// The number of selectors and documents to update must be the same
-  Future<Response> updateAll(List<dynamic> selectors, List<Map<String, dynamic>> documents,
+  Future<Response> updateAll(List<dynamic> selectors, List<dynamic> documents,
 		  {bool upsert = false,
 			  bool multiUpdate = false,
 			  WriteConcern writeConcern}) {
