@@ -328,9 +328,9 @@ class Db {
   Future close() {
     _log.fine(() => '$this closed');
     state = State.CLOSED;
-    var _cm = _connectionManager;
+    var closeFuture = _connectionManager.close();
     _connectionManager = null;
-    return _cm.close();
+    return closeFuture;
   }
 
   /// Analogue to shell's `show dbs`. Helper for `listDatabases` mongodb command.
