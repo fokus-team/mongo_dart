@@ -326,6 +326,8 @@ class Db {
   }
 
   Future close() {
+  	if (_connectionManager == null)
+  		return Future.value();
     _log.fine(() => '$this closed');
     state = State.CLOSED;
     var closeFuture = _connectionManager.close();
