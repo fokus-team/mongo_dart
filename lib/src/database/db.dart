@@ -84,6 +84,7 @@ class WriteConcern {
 class _UriParameters {
   static const authMechanism = 'authMechanism';
   static const authSource = 'authSource';
+  static const useSsl = 'ssl';
 }
 
 class Db {
@@ -154,9 +155,12 @@ class Db {
     }
 
     uri.queryParameters.forEach((String queryParam, String value) {
-      if (queryParam == _UriParameters.authMechanism) {
-        selectAuthenticationMechanism(value);
-      }
+	    if (queryParam == _UriParameters.authMechanism) {
+		    selectAuthenticationMechanism(value);
+	    }
+	    if (queryParam == _UriParameters.useSsl) {
+		    serverConfig.isSecure = true;
+	    }
 
       if (queryParam == _UriParameters.authSource) {
         authSourceDb = Db._authDb(value);
@@ -242,7 +246,7 @@ class Db {
       _connectionManager = _ConnectionManager(this, timeoutConfig: timeoutConfig);
 
       _uriList.forEach((uri) {
-        _connectionManager.addConnection(_parseUri(uri)..isSecure = secure);
+        _connectionManager.addConnection(_parseUri(uri));
       });
 
       return _connectionManager.open(writeConcern);
