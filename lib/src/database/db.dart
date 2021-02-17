@@ -159,7 +159,7 @@ class Db {
 		    selectAuthenticationMechanism(value);
 	    }
 	    if (queryParam == _UriParameters.useSsl) {
-		    serverConfig.isSecure = queryParam == 'true' ? true : false;
+		    serverConfig.isSecure = value == 'true' ? true : false;
 	    }
 
       if (queryParam == _UriParameters.authSource) {
