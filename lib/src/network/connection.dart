@@ -75,7 +75,7 @@ class _Connection {
         MongoMessageHandler().transformer.bind(socketStream).listen(_receiveReply,
           onError: (e, st) {
         	  if (e is TimeoutException && _manager.timeoutConfig.keepAliveTime > 0) {
-        	  	_manager.db.close();
+        	  	close();
         	  	return;
 	          }
             _log.severe("Socket error ${e} ${st}");
@@ -94,6 +94,7 @@ class _Connection {
       connected = true;
       completer.complete(true);
     }).catchError((err) {
+    	_closed = true;
       completer.completeError(err);
     });
     return completer.future;
@@ -101,6 +102,7 @@ class _Connection {
 
   Future close() {
     _closed = true;
+    connected = false;
     return socket.close();
   }
 
@@ -165,6 +167,7 @@ class _Connection {
 
   void _onSocketError() {
     _closed = true;
+    connected = false;
     var ex = const ConnectionException("connection closed.");
     _pendingQueries.forEach((id) {
       Completer completer = _replyCompleters.remove(id);

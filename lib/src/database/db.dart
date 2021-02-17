@@ -106,6 +106,12 @@ class Db {
   AuthenticationScheme _authenticationScheme;
   bool useLegacyErrorChecking;
 
+  /// Is connected returns true if the database is in state `OPEN`
+  /// and at least the primary connection is connected
+  ///
+  /// Connections can disconect because of network or database server problems.
+  bool get isConnected => state == State.OPEN && (_masterConnection?.connected ?? false);
+
   String toString() => 'Db($databaseName,$_debugInfo)';
 
   /// Db constructor expects [valid mongodb URI] (http://www.mongodb.org/display/DOCS/Connections).
