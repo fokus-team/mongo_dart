@@ -8,5 +8,6 @@ packages
 /out/
 /.pub/
 *.json
+*.iml
 .packages
 .dart_tool/
