@@ -68,7 +68,7 @@ class _ServerCapabilities {
 
 class Connection {
   static bool _caCertificateAlreadyInHash = false;
-  final Logger _log = Logger('Connection');
+  final Logger _log = Logger('MongoDart.Connection');
   final _ConnectionManager _manager;
   ServerConfig serverConfig;
   Socket? socket;

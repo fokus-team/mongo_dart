@@ -3,7 +3,7 @@ import 'package:logging/logging.dart' show Logger;
 import 'package:mongo_dart/mongo_dart.dart' show MongoDartError;
 import 'package:mongo_dart/src/database/utils/check_same_domain.dart';
 
-var _log = Logger('dns_llokup');
+var _log = Logger('MongoDart.dns_llokup');
 
 /// This method receive an Uri with "mongodb+srv" schema and returns
 /// A List of urls in "mongodb" schema format

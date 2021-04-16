@@ -34,7 +34,7 @@ Future testCollectionInfoCursor() async {
 void main() {
 //  hierarchicalLoggingEnabled = true;
 //  Logger.root.level = Level.OFF;
-//  new Logger('ConnectionManager').level = Level.ALL;
+//  new Logger('MongoDart.ConnectionManager').level = Level.ALL;
 //  var listener = (LogRecord r) {
 //    var name = r.loggerName;
 //    if (name.length > 15) {

@@ -14,7 +14,7 @@ const RS_NAME = 'rs';
 const MONGOD = 'mongod';
 const MONGO = 'mongo';
 
-final _log = Logger('MongoActions');
+final _log = Logger('MongoDart.MongoActions');
 
 void _makeEnv([int rsLength = RS_LENGTH]) {
   Directory('$DATA_PATH/$PORT_STD').createSync(recursive: true);
@@ -203,7 +203,7 @@ bool _killPid(int pid) {
 void main(List<String> args) {
   hierarchicalLoggingEnabled = true;
   Logger.root.level = Level.OFF;
-  Logger('MongoActions').level = Level.ALL;
+  Logger('MongoDart.MongoActions').level = Level.ALL;
   var listener = (LogRecord r) {
     var name = r.loggerName;
     print('${r.time}: $name: ${r.message}');

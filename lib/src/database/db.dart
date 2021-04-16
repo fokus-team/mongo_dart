@@ -173,7 +173,7 @@ class _UriParameters {
 
 class Db {
   static const mongoDefaultPort = 27017;
-  final _log = Logger('Db');
+  final _log = Logger('MongoDart.Db');
   final List<String> _uriList = <String>[];
 
   State state = State.INIT;
