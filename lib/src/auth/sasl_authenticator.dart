@@ -47,7 +47,7 @@ abstract class SaslAuthenticator extends Authenticator {
 
       var payload = result['payload'];
 
-      var payloadAsBytes = base64.decode(payload.toString());
+      var payloadAsBytes = payload.byteList;
 
       currentStep = currentStep.transition(conversation, payloadAsBytes);
 
