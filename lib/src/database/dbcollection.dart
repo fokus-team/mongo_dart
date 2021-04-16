@@ -538,6 +538,32 @@ class DbCollection {
     return updateOperation.execute();
   }
 
+  Future<Map<String, dynamic>> modernUpdateAll(List<dynamic> selectors,
+		  List<dynamic> updates,
+		  {bool? upsert,
+			  bool? multi,
+			  WriteConcern? writeConcern,
+			  CollationOptions? collation,
+			  List<dynamic>? arrayFilters,
+			  String? hint,
+			  Map<String, Object>? hintDocument}) async {
+	  var updateOperation = UpdateOperation(
+			  this,
+			  [
+			  	for (int i = 0; i < selectors.length; i++)
+					  UpdateStatement(_selectorBuilder2Map(selectors[i]),
+							  updates[i] is List ? updates[i] : _updateBuilder2Map(updates[i]),
+							  upsert: upsert,
+							  multi: multi,
+							  collation: collation,
+							  arrayFilters: arrayFilters,
+							  hint: hint,
+							  hintDocument: hintDocument)
+			  ],
+			  updateOptions: UpdateOptions(writeConcern: writeConcern));
+	  return updateOperation.execute();
+  }
+
   Future<WriteResult> replaceOne(selector, Map<String, dynamic> update,
       {bool? upsert,
       WriteConcern? writeConcern,
