@@ -8,7 +8,9 @@ class _ConnectionManager {
   final sendQueue = Queue<MongoMessage>();
   Connection? _masterConnection;
 
-  _ConnectionManager(this.db);
+  TimeoutConfig timeoutConfig;
+
+  _ConnectionManager(this.db, {required this.timeoutConfig});
 
   Connection? get masterConnection => _masterConnection;
 

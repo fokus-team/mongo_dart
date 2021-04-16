@@ -97,6 +97,9 @@ class Connection {
   Future<bool> connect() async {
     Socket _socket;
     try {
+      var connectionTimeout = _manager.timeoutConfig.connectionTimeout !=  null
+          ? Duration(milliseconds: _manager.timeoutConfig.connectionTimeout!)
+          : null;
       if (serverConfig.isSecure) {
         var securityContext = SecurityContext.defaultContext;
         if (serverConfig.tlsCAFileContent != null &&
@@ -117,9 +120,13 @@ class Connection {
             onBadCertificate: (certificate) {
           // couldn't find here if the cause is an hostname mismatch
           return serverConfig.tlsAllowInvalidCertificates;
-        });
+        }, timeout: connectionTimeout);
       } else {
-        _socket = await Socket.connect(serverConfig.host, serverConfig.port);
+        _socket = await Socket.connect(
+	        serverConfig.host,
+	        serverConfig.port,
+	        timeout: connectionTimeout,
+        );
       }
     } on TlsException catch (e) {
       if (e.osError?.message
@@ -148,10 +155,20 @@ class Connection {
     });
     socket = _socket;
 
-    _repliesSubscription = socket!
+    Stream socketStream = _socket;
+    if (_manager.timeoutConfig.keepAliveTime != null) {
+      socketStream = _socket.timeout(
+		    Duration(seconds: _manager.timeoutConfig.keepAliveTime!),
+	    );
+    }
+    _repliesSubscription = socketStream
         .transform<MongoResponseMessage>(MongoMessageHandler().transformer)
         .listen(_receiveReply,
             onError: (e, st) async {
+	            if (e is TimeoutException && _manager.timeoutConfig.keepAliveTime != null) {
+		            await close();
+		            return;
+	            }
               _log.severe('Socket error $e $st');
               if (!_closed) {
                 await _closeSocketOnError(socketError: e);
@@ -204,6 +221,13 @@ class Connection {
     } else {
       completer.completeError(const ConnectionException(
           'Invalid state: Connection already closed.'));
+    }
+    var future = completer.future;
+    if (_manager.timeoutConfig.socketTimeout != null) {
+      future = future.timeout(
+		    Duration(milliseconds: _manager.timeoutConfig.socketTimeout!),
+		    onTimeout: () => throw MongoQueryTimeout(),
+	    );
     }
     return completer.future;
   }

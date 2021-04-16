@@ -421,14 +421,18 @@ class Db {
       bool tlsAllowInvalidCertificates = false,
       String? tlsCAFile,
       String? tlsCertificateKeyFile,
-      String? tlsCertificateKeyFilePassword}) async {
+      String? tlsCertificateKeyFilePassword,
+	    TimeoutConfig? timeoutConfig}) async {
     if (state == State.OPENING) {
       throw MongoDartError('Attempt to open db in state $state');
     }
 
     state = State.OPENING;
     _writeConcern = writeConcern;
-    _connectionManager = _ConnectionManager(this);
+    _connectionManager = _ConnectionManager(
+	    this,
+	    timeoutConfig: timeoutConfig ?? const TimeoutConfig(),
+    );
 
     for (var uri in _uriList) {
       _connectionManager!.addConnection(await _parseUri(uri,

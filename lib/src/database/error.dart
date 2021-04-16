@@ -13,3 +13,8 @@ class MongoDartError extends Error {
   @override
   String toString() => 'MongoDart Error: $message';
 }
+
+class MongoQueryTimeout implements Exception {
+	@override
+	String toString() => 'MongoDart timed out while waiting for database to reply';
+}
